@@ -1,0 +1,12 @@
+syntax: glob
+
+*.orig
+*.pyc
+*.swp
+*.so
+*.o
+*.o.d
+*.inc
+
+syntax: regexp
+

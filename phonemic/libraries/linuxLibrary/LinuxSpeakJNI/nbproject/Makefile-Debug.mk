@@ -64,12 +64,12 @@ dist/libLinuxSpeakJNI.so: ${OBJECTFILES}
 ${OBJECTDIR}/linuxSpeak.o: linuxSpeak.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} $@.d
-	$(COMPILE.cc) -g -I/usr/lib/jvm/java-6-openjdk/include/ -fPIC  -MMD -MP -MF $@.d -o ${OBJECTDIR}/linuxSpeak.o linuxSpeak.cpp
+	$(COMPILE.cc) -g -I/usr/local/java/include/ -I/usr/local/java/include/linux/ -fPIC  -MMD -MP -MF $@.d -o ${OBJECTDIR}/linuxSpeak.o linuxSpeak.cpp
 
 ${OBJECTDIR}/LinuxSpeakJNI.o: LinuxSpeakJNI.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} $@.d
-	$(COMPILE.cc) -g -I/usr/lib/jvm/java-6-openjdk/include/ -fPIC  -MMD -MP -MF $@.d -o ${OBJECTDIR}/LinuxSpeakJNI.o LinuxSpeakJNI.cpp
+	$(COMPILE.cc) -g -I/usr/local/java/include/ -I/usr/local/java/include/linux/ -fPIC  -MMD -MP -MF $@.d -o ${OBJECTDIR}/LinuxSpeakJNI.o LinuxSpeakJNI.cpp
 
 # Subprojects
 .build-subprojects:
