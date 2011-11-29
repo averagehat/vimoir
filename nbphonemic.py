@@ -2,23 +2,39 @@ import java
 import sys
 import os
 
-if len(sys.argv) == 1:
-    print 'Usage: %s /path/to/phonemic.jar' % os.path.basename(sys.argv[0])
-    sys.exit(1)
-sys.path.append(sys.argv[1])
+import netbeans
+import phonemic
 
-try:
-    import org.sodbeans.phonemic.TextToSpeechFactory as TextToSpeechFactory
-except java.lang.UnsatisfiedLinkError:
+def usage():
+    print >> sys.stderr, ('usage: %s /path/to/phonemic.jar'
+                            % os.path.basename(sys.argv[0]))
     sys.exit(1)
-except ImportError, err:
-    print 'Cannot find phonemic.jar: %s' % err
+
+def get_speech():
+    try:
+        sys.path.append(sys.argv[1])
+        import org.sodbeans.phonemic.TextToSpeechFactory as TextToSpeechFactory
+    except IndexError:
+        usage()
+    except java.lang.UnsatisfiedLinkError:
+        pass
+    except ImportError, err:
+        print >> sys.stderr, 'cannot find phonemic.jar: %s' % str(err)
+        pass
+    else:
+        speech = TextToSpeechFactory.getDefaultTextToSpeech()
+        if speech.canSetSpeed():
+            print >> sys.stderr, 'speech speed: %f' % speech.getSpeed()
+            pass
+        return speech
     sys.exit(1)
 
 def main():
-    speech = TextToSpeechFactory.getDefaultTextToSpeech()
-    speech.speakBlocking('Hello the sky is blue '
-                         'and the sea has been yellow for a while.')
+    nbsock = phonemic.Phonemic(get_speech(), debug=1)
+    netbeans.Server(nbsock)
+    print >> sys.stderr, 'Terminated.'
+
+    # terminate all Phonemic threads by exiting
     sys.exit(0)
 
 if __name__ == "__main__":
