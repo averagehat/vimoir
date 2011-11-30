@@ -1,0 +1,3 @@
+<project name="factory">
+    <import file="../../common.xml"/>
+</project>

@@ -8,6 +8,11 @@ import cStringIO
 import logging
 from logging import error, info, debug
 
+try:
+    from nbphonemic.factory import ServerType
+except ImportError:
+    ServerType = object
+
 CONNECTION_DEFAULT = ('', 3219, 'changeme')
 RE_ESCAPE = r'["\n\t\r\\]'                                              \
             r'# RE: escaped characters in a string'
@@ -186,7 +191,7 @@ class Reply:
         """Process the netbeans reply."""
         pass
 
-class Server(asyncore.dispatcher):
+class Server(asyncore.dispatcher, ServerType):
     def __init__(self, nbsock, debug):
         asyncore.dispatcher.__init__(self)
         self.nbsock = nbsock
@@ -208,10 +213,8 @@ class Server(asyncore.dispatcher):
         self.close()
         info('connected to %s', addr)
 
-    def loop():
+    def loop(self):
         asyncore.loop(timeout=.020, use_poll=False)
-    loop = staticmethod(loop)
-
 
 class Netbeans(asynchat.async_chat):
     def __init__(self):

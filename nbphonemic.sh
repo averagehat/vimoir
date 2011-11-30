@@ -12,7 +12,15 @@ fullpath()
 
 run()
 {
-    jython $pwd/nbphonemic.py $pwd/phonemic/phonemic.jar "$@"
+    # path to jython directory as first parameter: run as java
+    # otherwise run as jython
+    if [[ -n "$1" ]] ; then
+        java -cp $pwd/phonemic.jar:$1/jython.jar:$pwd/dist/factory.jar \
+                 nbphonemic.factory.Main $1/lib
+    else
+        jython $pwd/nbphonemic.py $pwd/phonemic.jar
+    fi
+
 }
 
 pgmname=${0##*/}
@@ -21,6 +29,6 @@ pgm=$file
 ## goto base directory
 cd ${pgm%/*}
 pwd=$(pwd)
-export LD_LIBRARY_PATH=$pwd/phonemic/libraries/linuxLibrary/LinuxSpeakJNI/dist/
+export LD_LIBRARY_PATH=$pwd/phonemic-src/libraries/linuxLibrary/LinuxSpeakJNI/dist/
 
 run "$@"

@@ -1,9 +1,13 @@
 import os
 from logging import error, info, debug
 
+try:
+    from nbphonemic.factory import PhonemicType
+except ImportError:
+    PhonemicType = object
 import netbeans
 
-class Phonemic(netbeans.Netbeans):
+class Phonemic(netbeans.Netbeans, PhonemicType):
     def __init__(self, speech):
         netbeans.Netbeans.__init__(self)
         self.speech = speech

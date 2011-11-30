@@ -1,0 +1,50 @@
+<project>
+    <property name="main.dir"   value="../.."/>
+    <property name="jython.dir" value="/home/xavier/src/packages/jython/jython2.5.2"/>
+    <property name="src.dir"    value="."/>
+    <property name="build.dir"  value="../../build"/>
+    <property name="jar.dir"    value="${build.dir}/jar"/>
+    <basename property="project.name" file="${basedir}"/>
+    <property name="classes.dir"    value="${build.dir}/classes/${project.name}"/>
+
+    <target name="init">
+        <property name="filename" value="${ant.project.name}"/>
+    </target>
+
+    <target name="compile" depends="init"
+            description="Compile the source files">
+        <mkdir dir="${classes.dir}"/>
+        <mkdir dir="${jar.dir}"/>
+
+        <javac srcdir="${src.dir}" destdir="${classes.dir}"
+                encoding="ISO8859_1"
+                includeantruntime="false"
+                fork="yes"
+                debug="on"
+                source="1.4"
+                target="1.4">
+            <classpath>
+                <fileset dir="${main.dir}" includes="*.jar"/>
+                <fileset dir="${jython.dir}" includes="*.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="build" depends="compile" description="Build the jar files">
+        <echo message="Building ${ant.project.name}"/>
+        <mkdir dir="${jar.dir}/${project.name}"/>
+        <jar jarfile="${jar.dir}/${project.name}/${filename}_dev.jar" basedir="${classes.dir}"/>
+    </target>
+
+    <target name="dist" depends="build">
+        <property name="dist.dir"    location="../../dist"/>
+        <jar jarfile="${dist.dir}/${filename}.jar" basedir="${classes.dir}">
+            <fileset dir="${src.dir}/" includes="manifest.txt"/>
+        </jar>
+        <jar jarfile="${dist.dir}/${filename}-SRC.jar" basedir="${classes.dir}">
+            <fileset dir="${src.dir}/" includes="**/*.java"/>
+            <fileset dir="${src.dir}/" includes="manifest.txt"/>
+        </jar>
+    </target>
+
+</project>

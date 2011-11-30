@@ -8,6 +8,11 @@ syntax: glob
 *.o.d
 *.inc
 *.class
+*.jar
 
 syntax: regexp
+
+^dist\/.*$
+^build\/.*$
+^cachedir\/.*$
 

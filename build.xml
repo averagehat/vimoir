@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<project name="nbphonemic" default="all">
+    <description>Vim speaks with Phonemic</description>
+    <property name="dist.dir" location="dist"/>
+    <property name="nbphonemic.version" value="1.0"/>
+
+    <filelist id="projects" dir="src">
+        <file name="factory/build.xml"/>
+    </filelist>
+
+    <macrodef name="iterate">
+        <attribute name="target"/>
+        <sequential>
+            <subant target="@{target}">
+                <filelist refid="projects"/>
+            </subant>
+        </sequential>
+    </macrodef>
+
+    <target name="all" depends="dist"
+            description="Compile, build and distribute the jar files">
+    </target>
+
+    <target name="build">
+        <iterate target="build"/>
+    </target>
+
+    <target name="dist" description="Distribute nbphonemic">
+        <delete dir="${dist.dir}"/>
+        <iterate target="dist"/>
+    </target>
+
+    <target name="clean" description="clean up" >
+        <delete dir="build"/>
+        <delete dir="${dist.dir}"/>
+    </target>
+
+</project>

@@ -2,8 +2,8 @@ import java
 import sys
 import os
 
-import netbeans
 import phonemic
+import netbeans
 
 def usage():
     print >> sys.stderr, ('usage: %s /path/to/phonemic.jar'
