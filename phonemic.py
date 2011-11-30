@@ -54,21 +54,24 @@ class Phonemic(netbeans.Netbeans):
         self.speech = speech
         setup_logger(debug)
 
+    def second_voice(self, text):
+        self.speech.speakBlocking(text)
+
     #-----------------------------------------------------------------------
     #   Events
     #-----------------------------------------------------------------------
 
     def event_open(self):
-        self.show_balloon('Phonemic is connected to Vim')
+        self.second_voice('Phonemic is connected to Vim')
 
     def event_close(self):
-        self.show_balloon('Phonemic is disconnected from Vim')
+        self.second_voice('Phonemic is disconnected from Vim')
 
     def event_fileOpened(self, pathname):
-        self.show_balloon('Opening the file %s' % os.path.basename(pathname))
+        self.second_voice('Opening the file %s' % os.path.basename(pathname))
 
     def event_killed(self, pathname):
-        self.show_balloon('Closing the file %s' % os.path.basename(pathname))
+        self.second_voice('Closing the file %s' % os.path.basename(pathname))
 
     #-----------------------------------------------------------------------
     #   Commands
@@ -76,7 +79,7 @@ class Phonemic(netbeans.Netbeans):
 
     def show_balloon(self, text):
         """Override show_balloon."""
-        self.speech.speakBlocking(text)
+        self.second_voice(text)
 
     def default_cmd_processing(self, cmd, args, buf, lnum, col):
         """Handle nbkey commands not matched with a 'cmd_xxx' method."""
