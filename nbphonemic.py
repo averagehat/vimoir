@@ -30,8 +30,10 @@ def get_speech():
     sys.exit(1)
 
 def main():
-    nbsock = phonemic.Phonemic(get_speech(), debug=1)
-    netbeans.Server(nbsock)
+    nbsock = phonemic.Phonemic(get_speech())
+    nbserver = netbeans.Server(nbsock, debug=1)
+    nbserver.bind_listen()
+    nbserver.loop()
     print >> sys.stderr, 'Terminated.'
 
     # terminate all Phonemic threads by exiting

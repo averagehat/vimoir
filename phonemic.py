@@ -1,58 +1,12 @@
-import sys
 import os
-import cStringIO
-import logging
 from logging import error, info, debug
 
 import netbeans
 
-def setup_logger(debug):
-    """Setup the logger."""
-    fmt = logging.Formatter('%(levelname)-7s %(message)s')
-    stderr_hdlr = StderrHandler()
-    stderr_hdlr.setFormatter(fmt)
-    root = logging.getLogger()
-    root.addHandler(stderr_hdlr)
-    level = logging.ERROR
-    if debug:
-        level = logging.DEBUG
-    root.setLevel(level)
-
-class StderrHandler(logging.StreamHandler):
-    """Stderr logging handler."""
-
-    def __init__(self):
-        self.strbuf = cStringIO.StringIO()
-        self.doflush = True
-        logging.StreamHandler.__init__(self, self.strbuf)
-
-    def should_flush(self, doflush):
-        """Set flush mode."""
-        self.doflush = doflush
-
-    def write(self, string):
-        """Write to the StringIO buffer."""
-        self.strbuf.write(string)
-
-    def flush(self):
-        """Flush to stderr when enabled."""
-        if self.doflush:
-            value = self.strbuf.getvalue()
-            if value:
-                print >> sys.stderr, value,
-                self.strbuf.truncate(0)
-
-    def close(self):
-        """Close the handler."""
-        self.flush()
-        self.strbuf.close()
-        logging.StreamHandler.close(self)
-
 class Phonemic(netbeans.Netbeans):
-    def __init__(self, speech, debug):
+    def __init__(self, speech):
         netbeans.Netbeans.__init__(self)
         self.speech = speech
-        setup_logger(debug)
 
     def second_voice(self, text):
         self.speech.speakBlocking(text)

@@ -1,8 +1,11 @@
+import sys
 import os
 import re
 import asyncore
 import asynchat
 import socket
+import cStringIO
+import logging
 from logging import error, info, debug
 
 CONNECTION_DEFAULT = ('', 3219, 'changeme')
@@ -116,6 +119,48 @@ def parse_msg(msg):
 
     return (matchobj.re is re_event), buf_id, event, seqno, nbstring, arg_list
 
+def setup_logger(debug):
+    """Setup the logger."""
+    fmt = logging.Formatter('%(levelname)-7s %(message)s')
+    stderr_hdlr = StderrHandler()
+    stderr_hdlr.setFormatter(fmt)
+    root = logging.getLogger()
+    root.addHandler(stderr_hdlr)
+    level = logging.ERROR
+    if debug:
+        level = logging.DEBUG
+    root.setLevel(level)
+
+class StderrHandler(logging.StreamHandler):
+    """Stderr logging handler."""
+
+    def __init__(self):
+        self.strbuf = cStringIO.StringIO()
+        self.doflush = True
+        logging.StreamHandler.__init__(self, self.strbuf)
+
+    def should_flush(self, doflush):
+        """Set flush mode."""
+        self.doflush = doflush
+
+    def write(self, string):
+        """Write to the StringIO buffer."""
+        self.strbuf.write(string)
+
+    def flush(self):
+        """Flush to stderr when enabled."""
+        if self.doflush:
+            value = self.strbuf.getvalue()
+            if value:
+                print >> sys.stderr, value,
+                self.strbuf.truncate(0)
+
+    def close(self):
+        """Close the handler."""
+        self.flush()
+        self.strbuf.close()
+        logging.StreamHandler.close(self)
+
 class Error(Exception):
     """Base class for exceptions."""
 
@@ -142,12 +187,11 @@ class Reply:
         pass
 
 class Server(asyncore.dispatcher):
-    def __init__(self, nbsock):
+    def __init__(self, nbsock, debug):
         asyncore.dispatcher.__init__(self)
         self.nbsock = nbsock
+        setup_logger(debug)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind_listen()
-        asyncore.loop(timeout=.020, use_poll=False)
 
     def bind_listen(self):
         self.set_reuse_addr()
@@ -163,6 +207,11 @@ class Server(asyncore.dispatcher):
         self.nbsock.connected = True
         self.close()
         info('connected to %s', addr)
+
+    def loop():
+        asyncore.loop(timeout=.020, use_poll=False)
+    loop = staticmethod(loop)
+
 
 class Netbeans(asynchat.async_chat):
     def __init__(self):
