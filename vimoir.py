@@ -1,4 +1,3 @@
-import java
 import sys
 import os
 
@@ -11,6 +10,12 @@ def usage():
     sys.exit(1)
 
 def get_speech():
+    """Return None when run by python or phonemic.jar cannot be found."""
+    try:
+        import java
+    except ImportError:
+        return None
+
     try:
         sys.path.append(sys.argv[1])
         import org.sodbeans.phonemic.TextToSpeechFactory as TextToSpeechFactory
@@ -20,7 +25,7 @@ def get_speech():
         pass
     except ImportError, err:
         print >> sys.stderr, 'cannot find phonemic.jar: %s' % str(err)
-        pass
+        return None
     else:
         speech = TextToSpeechFactory.getDefaultTextToSpeech()
         if speech.canSetSpeed():

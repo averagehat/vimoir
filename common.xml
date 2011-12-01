@@ -1,5 +1,5 @@
 <project>
-    <property name="main.dir"   value="../.."/>
+    <property name="phonemic.dir"   value="/home/xavier/src/packages/phonemic/phonemic-unziped/phonemic/phonemic"/>
     <property name="jython.dir" value="/home/xavier/src/packages/jython/jython2.5.2"/>
     <property name="src.dir"    value="."/>
     <property name="build.dir"  value="../../build"/>
@@ -8,7 +8,7 @@
     <property name="classes.dir"    value="${build.dir}/classes/${project.name}"/>
 
     <target name="init">
-        <property name="filename" value="vimoir-${project.name}"/>
+        <property name="filename" value="${project.name}"/>
     </target>
 
     <target name="compile" depends="init"
@@ -24,7 +24,7 @@
                 source="1.4"
                 target="1.4">
             <classpath>
-                <fileset dir="${main.dir}" includes="*.jar"/>
+                <fileset dir="${phonemic.dir}" includes="*.jar"/>
                 <fileset dir="${jython.dir}" includes="*.jar"/>
             </classpath>
         </javac>

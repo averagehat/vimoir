@@ -1,4 +1,4 @@
-package vimoir.phonemic;
+package vimoir.jynetbeans;
 
 import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;

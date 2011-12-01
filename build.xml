@@ -1,11 +1,11 @@
 <?xml version="1.0" ?>
-<project name="nbphonemic" default="all">
+<project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
     <property name="dist.dir" location="dist"/>
-    <property name="nbphonemic.version" value="1.0"/>
+    <property name="vimoir.version" value="1.0"/>
 
     <filelist id="projects" dir="src">
-        <file name="phonemic/build.xml"/>
+        <file name="jynetbeans/build.xml"/>
     </filelist>
 
     <macrodef name="iterate">
@@ -25,12 +25,15 @@
         <iterate target="build"/>
     </target>
 
-    <target name="dist" description="Distribute nbphonemic">
+    <target name="dist" description="Distribute vimoir">
         <delete dir="${dist.dir}"/>
         <iterate target="dist"/>
     </target>
 
     <target name="clean" description="clean up" >
+        <delete>
+            <fileset dir="." includes="*.class"/>
+        </delete>
         <delete dir="build"/>
         <delete dir="${dist.dir}"/>
     </target>

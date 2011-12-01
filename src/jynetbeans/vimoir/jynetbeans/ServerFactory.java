@@ -1,7 +1,7 @@
 /**
  * Object Factory that is used to coerce python module into a Java class
  */
-package vimoir.phonemic;
+package vimoir.jynetbeans;
 
 import org.python.core.Py;
 import org.python.core.PyObject;

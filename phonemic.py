@@ -1,8 +1,9 @@
+import sys
 import os
 from logging import error, info, debug
 
 try:
-    from vimoir.phonemic import PhonemicType
+    from vimoir.jynetbeans import PhonemicType
 except ImportError:
     PhonemicType = object
 import netbeans
@@ -11,9 +12,15 @@ class Phonemic(netbeans.Netbeans, PhonemicType):
     def __init__(self, speech):
         netbeans.Netbeans.__init__(self)
         self.speech = speech
+        # print on stdout when phonemic is not available
+        if speech:
+            self.speak = self.speech.speakBlocking
+        else:
+            self.speak = lambda x: sys.stdout.write(
+                                    'speak> "' + x + '"' + os.linesep)
 
     def second_voice(self, text):
-        self.speech.speakBlocking(text)
+        self.speak(text)
 
     #-----------------------------------------------------------------------
     #   Events
@@ -44,5 +51,5 @@ class Phonemic(netbeans.Netbeans, PhonemicType):
         info('nbkey: %s', (cmd, args, buf.name, lnum, col))
 
     def cmd_speak(self, args, buf, lnum, col):
-        self.speech.speakBlocking(args)
+        self.speak(args)
 

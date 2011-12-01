@@ -9,7 +9,7 @@ import logging
 from logging import error, info, debug
 
 try:
-    from vimoir.phonemic import ServerType
+    from vimoir.jynetbeans import ServerType
 except ImportError:
     ServerType = object
 

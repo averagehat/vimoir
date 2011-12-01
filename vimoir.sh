@@ -18,11 +18,13 @@ run()
 {
     if [[ "$1" = "jython" ]] ; then
         jython $pwd/vimoir.py $PHONEMIC_DIR/phonemic.jar
+    elif [[ "$1" = "python" ]] ; then
+        python $pwd/vimoir.py
     else
         jarfiles=$JYTHON_HOME/jython.jar
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
-        jarfiles=$jarfiles:$pwd/dist/vimoir-phonemic.jar
-        java -cp $jarfiles vimoir.phonemic.Phonemic $JYTHON_HOME/lib
+        jarfiles=$jarfiles:$pwd/dist/jynetbeans.jar
+        java -cp $jarfiles vimoir.jynetbeans.Phonemic $JYTHON_HOME/lib
     fi
 
 }
