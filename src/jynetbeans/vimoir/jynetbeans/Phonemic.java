@@ -14,8 +14,13 @@ public class Phonemic {
         interpreter.exec("sys.path[0:0] = ['" + args[0] + "']");
 
         PhonemicFactory phonemicFactory = new PhonemicFactory();
-        TextToSpeech speech = TextToSpeechFactory.getDefaultTextToSpeech();
-        PhonemicType nbsock = phonemicFactory.create(speech);
+        Object speech = null;
+        try {
+            speech = TextToSpeechFactory.getDefaultTextToSpeech();
+        } catch (NoClassDefFoundError ex) {
+            System.err.println("cannot find phonemic.jar: " + ex);
+        }
+        PhonemicType nbsock = phonemicFactory.create((TextToSpeech) speech);
         ServerFactory serverFactory = new ServerFactory();
         ServerType nbserver = serverFactory.create(nbsock, 1);
         nbserver.bind_listen();
