@@ -1,4 +1,4 @@
-package nbphonemic.factory;
+package vimoir.phonemic;
 
 public interface PhonemicType {
 }

@@ -9,7 +9,7 @@ import logging
 from logging import error, info, debug
 
 try:
-    from nbphonemic.factory import ServerType
+    from vimoir.phonemic import ServerType
 except ImportError:
     ServerType = object
 

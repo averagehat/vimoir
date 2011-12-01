@@ -2,7 +2,7 @@ import os
 from logging import error, info, debug
 
 try:
-    from nbphonemic.factory import PhonemicType
+    from vimoir.phonemic import PhonemicType
 except ImportError:
     PhonemicType = object
 import netbeans

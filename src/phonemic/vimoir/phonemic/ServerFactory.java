@@ -1,7 +1,7 @@
 /**
  * Object Factory that is used to coerce python module into a Java class
  */
-package nbphonemic.factory;
+package vimoir.phonemic;
 
 import org.python.core.Py;
 import org.python.core.PyObject;

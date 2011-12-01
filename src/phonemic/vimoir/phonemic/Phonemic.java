@@ -1,10 +1,10 @@
-package nbphonemic.factory;
+package vimoir.phonemic;
 
 import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;
 import org.python.util.PythonInterpreter;
 
-public class Main {
+public class Phonemic {
 
     public static void main(String[] args) {
         // Add the current directory and jython.jar directory to jython path.

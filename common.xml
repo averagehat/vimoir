@@ -8,7 +8,7 @@
     <property name="classes.dir"    value="${build.dir}/classes/${project.name}"/>
 
     <target name="init">
-        <property name="filename" value="${ant.project.name}"/>
+        <property name="filename" value="vimoir-${project.name}"/>
     </target>
 
     <target name="compile" depends="init"
