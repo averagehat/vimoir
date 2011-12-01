@@ -2,7 +2,7 @@
 <project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
     <property name="dist.dir" location="dist"/>
-    <property name="vimoir.version" value="1.0"/>
+    <property name="vimoir.version" value="0.1"/>
 
     <filelist id="projects" dir="src">
         <file name="jynetbeans/build.xml"/>
@@ -13,6 +13,8 @@
         <sequential>
             <subant target="@{target}">
                 <filelist refid="projects"/>
+                <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
+                <property name="vimoir.version" value="${vimoir.version}"/>
             </subant>
         </sequential>
     </macrodef>
@@ -26,15 +28,37 @@
     </target>
 
     <target name="dist" description="Distribute vimoir">
+        <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
+            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
+        </exec>
+        <property name="dist.name" value="${ant.project.name}-v${vimoir.version}"/>
+        <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
         <delete dir="${dist.dir}"/>
+        <mkdir dir="${tar.dir}"/>
+
         <iterate target="dist"/>
+
+        <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
+        <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
+        <copy todir="${tar.dir}">
+            <fileset dir="." includes="*.py"/>
+        </copy>
+        <exec executable="/bin/bash" os="Linux">
+            <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh'"/>
+        </exec>
+        <exec executable="/bin/bash" os="Linux">
+            <arg line="-c 'cd ${dist.dir}; tar czf ${dist.name}.tar.gz ${dist.name}'"/>
+        </exec>
+        <delete dir="${tar.dir}"/>
     </target>
 
     <target name="clean" description="clean up" >
         <delete>
             <fileset dir="." includes="*.class"/>
+            <fileset dir="." includes="*.pyc"/>
         </delete>
         <delete dir="build"/>
+        <delete dir="lib"/>
         <delete dir="${dist.dir}"/>
     </target>
 

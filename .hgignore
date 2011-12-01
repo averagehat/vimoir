@@ -13,4 +13,5 @@ syntax: regexp
 
 ^dist\/.*$
 ^build\/.*$
+^lib\/.*$
 
