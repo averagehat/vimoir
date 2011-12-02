@@ -14,7 +14,6 @@
             <subant target="@{target}">
                 <filelist refid="projects"/>
                 <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
-                <property name="vimoir.version" value="${vimoir.version}"/>
             </subant>
         </sequential>
     </macrodef>

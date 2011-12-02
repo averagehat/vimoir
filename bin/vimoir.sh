@@ -25,7 +25,7 @@ run()
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         jarfiles=$JYTHON_HOME/jython.jar
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
-        jarfiles=$jarfiles:$pwd/lib/jynetbeans-v0.1.jar
+        jarfiles=$jarfiles:$pwd/lib/jynetbeans.jar
         java -cp $jarfiles vimoir.jynetbeans.Phonemic $JYTHON_HOME/lib
     fi
 
