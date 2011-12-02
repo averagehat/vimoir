@@ -31,6 +31,9 @@
         <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>
+        <exec executable="/bin/sed" os="Linux" output="README">
+            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ README"/>
+        </exec>
         <property name="dist.name" value="${ant.project.name}-v${vimoir.version}"/>
         <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
         <delete dir="${dist.dir}"/>
@@ -40,6 +43,7 @@
 
         <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
+        <copy todir="${tar.dir}" file="README"/>
         <copy todir="${tar.dir}">
             <fileset dir="." includes="*.py"/>
         </copy>
