@@ -48,13 +48,17 @@ def get_speech():
         return speech
     sys.exit(1)
 
-class Phonemic(object):
-    def __init__(self, speech):
-        self.speech = speech
+class NetbeansClient(object):
+    def __init__(self):
         self.nbsock = netbeans.Netbeans(debug=1)
 
     def start(self):
         self.nbsock.start(self)
+
+class Phonemic(NetbeansClient):
+    def __init__(self, speech):
+        NetbeansClient.__init__(self)
+        self.speech = speech
 
     def speak(self, text):
         if self.speech:

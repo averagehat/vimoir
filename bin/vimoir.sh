@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SRC=/home/xavier/src/packages
+
+# Set the paths of the following variables according to your own setup.
 JYTHON_HOME=$SRC/jython/jython2.5.2
-PHONEMIC_DIR=$SRC/phonemic/phonemic-unziped/phonemic/phonemic
-LINUXSPEAKJNI=/home/xavier/src/vimoir/phonemic-src/libraries/linuxLibrary/LinuxSpeakJNI/dist/
+PHONEMIC_DIR=$SRC/phonemic/phonemic/phonemic
+LINUXSPEAKJNI=$SRC/phonemic/phonemic-svn/trunk/libraries/linuxLibrary/LinuxSpeakJNI/dist
 
 # convert to full pathname
 fullpath()

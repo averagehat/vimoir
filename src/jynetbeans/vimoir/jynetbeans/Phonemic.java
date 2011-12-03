@@ -18,14 +18,16 @@ package vimoir.jynetbeans;
 
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import org.sodbeans.phonemic.tts.TextToSpeech;
 import org.python.util.PythonInterpreter;
 import vimoir.netbeans.NetbeansClientType;
 
+/**
+ * A class that speaks audibly Vim buffers content.
+ */
 public class Phonemic extends vimoir.netbeans.Phonemic implements NetbeansClientType {
     static Logger logger;
 
-    public Phonemic(TextToSpeech speech) {
+    public Phonemic(Object speech) {
         logger = Logger.getLogger("vimoir.jynetbeans");
         Level level = logger.getLevel();
         int debug = 0;

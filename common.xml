@@ -1,6 +1,4 @@
 <project>
-    <property name="phonemic.dir"   value="/home/xavier/src/packages/phonemic/phonemic-unziped/phonemic/phonemic"/>
-    <property name="jython.dir" value="/home/xavier/src/packages/jython/jython2.5.2"/>
     <property name="src.dir"    value="."/>
     <property name="jar.dir"    value="../../lib"/>
     <basename property="project.name" file="${basedir}"/>

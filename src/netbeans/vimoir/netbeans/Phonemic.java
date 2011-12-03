@@ -24,15 +24,18 @@ import java.util.logging.LogManager;
 import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;
 
+/**
+ * A class that speaks audibly Vim buffers content.
+ */
 public class Phonemic extends NetbeansClient implements NetbeansClientType {
     static Logger logger;
-    public TextToSpeech speech;
+    /** speech type is Object and not TextToSpeech to allow for running
+     * without phonemic.jar installed.  */
+    public Object speech;
 
-    // This constructor is needed because Phonemic in jynetbeans is subclassing
-    // this class.
     public Phonemic() {}
 
-    public Phonemic(TextToSpeech speech) {
+    public Phonemic(Object speech) {
         // One MUST invoke the superclass constructor.
         super();
         this.speech = speech;
@@ -41,7 +44,7 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
     void speak(String text) {
         // Print on stdout when phonemic is not available.
         if (this.speech != null)
-            this.speech.speakBlocking(text);
+            ((TextToSpeech) this.speech).speakBlocking(text);
         else
             System.out.println("speak> \"" + text + "\"");
     }
@@ -88,7 +91,7 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         this.speak(args);
     }
 
-    public static TextToSpeech get_speech() {
+    public static Object get_speech() {
         // Setup logging.
         try {
             FileInputStream configFile = new FileInputStream("conf/logging.properties");
@@ -107,7 +110,7 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         } catch (NoClassDefFoundError ex) {
             logger.severe("cannot find phonemic.jar: " + ex);
         }
-        return (TextToSpeech) speech;
+        return speech;
     }
 
     public static void main(String[] args) {
