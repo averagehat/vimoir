@@ -1,3 +1,17 @@
+# Copyright 2011 Xavier de Gaye
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 import os
 import re
@@ -9,9 +23,9 @@ import logging
 from logging import error, info, debug
 
 try:
-    from vimoir.jynetbeans import ServerType
+    from vimoir.netbeans import NetbeansType
 except ImportError:
-    ServerType = object
+    NetbeansType = object
 
 CONNECTION_DEFAULT = ('', 3219, 'changeme')
 RE_ESCAPE = r'["\n\t\r\\]'                                              \
@@ -112,8 +126,8 @@ def parse_msg(msg):
         end = args.rfind("\"")
         if end != -1 and end != 0:
             nbstring = args[1:end]
-            # do not unquote nbkey parameter twice since vim already parses
-            # function parameters as strings (see :help expr-quote)
+            # Do not unquote nbkey parameter twice since vim already parses
+            # function parameters as strings (see :help expr-quote).
             if event != 'keyAtPos':
                 nbstring = unquote(nbstring)
         else:
@@ -169,7 +183,7 @@ class StderrHandler(logging.StreamHandler):
 class Error(Exception):
     """Base class for exceptions."""
 
-class Reply:
+class Reply(object):
     """Abstract class. A Reply instance is a callable used to process
     the result of a  function call in the reply received from netbeans.
 
@@ -191,12 +205,12 @@ class Reply:
         """Process the netbeans reply."""
         pass
 
-class Server(asyncore.dispatcher, ServerType):
-    def __init__(self, nbsock, debug):
+class Server(asyncore.dispatcher):
+    def __init__(self, nbsock):
         asyncore.dispatcher.__init__(self)
         self.nbsock = nbsock
-        setup_logger(debug)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.bind_listen()
 
     def bind_listen(self):
         self.set_reuse_addr()
@@ -213,12 +227,10 @@ class Server(asyncore.dispatcher, ServerType):
         self.close()
         info('connected to %s', addr)
 
-    def loop(self):
-        asyncore.loop(timeout=.020, use_poll=False)
-
-class Netbeans(asynchat.async_chat):
-    def __init__(self):
+class Netbeans(asynchat.async_chat, NetbeansType):
+    def __init__(self, debug):
         asynchat.async_chat.__init__(self)
+        self.client = None
         self.set_terminator('\n')
         self.ibuff = []
         self.ready = False
@@ -226,6 +238,12 @@ class Netbeans(asynchat.async_chat):
         self._bset = BufferSet(self)
         self.seqno = 0
         self.last_seqno = 0
+        setup_logger(debug)
+        Server(self)
+
+    def start(self, client):
+        self.client = client
+        asyncore.loop(timeout=.020, use_poll=False)
 
     def collect_incoming_data(self, data):
         self.ibuff.append(data)
@@ -240,21 +258,21 @@ class Netbeans(asynchat.async_chat):
             self.open_session(msg)
             return
 
-        # handle variable number of elements in returned tuple
+        # Handle variable number of elements in returned tuple.
         is_event, buf_id, event, seqno, nbstring, arg_list = (
                 (lambda a, b=None, c=None, d=None, e=None, f=None:
                             (a, b, c, d, e, f))(*parse_msg(msg)))
 
         if is_event is None:
-            # ignore invalid message
+            # Ignore invalid message.
             pass
         elif is_event:
             evt_handler = getattr(self, "evt_%s" % event, evt_ignore)
             evt_handler(buf_id, nbstring, arg_list)
 
-        # a function reply: process the reply
+        # A function reply: process the reply.
         else:
-            # vim may send multiple replies for one function request
+            # Vim may send multiple replies for one function request.
             if seqno == self.last_seqno:
                 return
 
@@ -277,7 +295,7 @@ class Netbeans(asynchat.async_chat):
         # '0:version=0 "2.3"'
         # '0:startupDone=0'
         else:
-            # handle variable number of elements in returned tuple
+            # Handle variable number of elements in returned tuple.
             is_event, buf_id, event, seqno, nbstring, arg_list = (
                     (lambda a, b=None, c=None, d=None, e=None, f=None:
                                 (a, b, c, d, e, f))(*parse_msg(msg)))
@@ -287,7 +305,7 @@ class Netbeans(asynchat.async_chat):
                     return
                 elif event == "startupDone":
                     self.ready = True
-                    self.event_open()
+                    self.client.event_open()
                     return
         raise Error('received unexpected message: "%s"' % msg)
 
@@ -296,7 +314,7 @@ class Netbeans(asynchat.async_chat):
     #-----------------------------------------------------------------------
     def evt_disconnect(self, buf_id, nbstring, arg_list):
         """Process a disconnect netbeans event."""
-        self.event_close()
+        self.client.event_close()
         self.close()
 
     def evt_fileOpened(self, buf_id, pathname, arg_list):
@@ -314,13 +332,13 @@ class Netbeans(asynchat.async_chat):
                     else:
                         error('got fileOpened with wrong bufId')
                         return
-                self.event_fileOpened(pathname)
+                self.client.event_fileOpened(pathname)
             else:
                 error('absolute pathname required')
         else:
-            self.show_balloon(
-                '\nYou cannot use netbeans on a "[No Name]" file.\n'
-                'Please, edit a file.\n'
+            self.client.event_error(
+                'You cannot use netbeans on a "[No Name]" file.\n'
+                'Please, edit a file.'
                 )
 
     def evt_keyAtPos(self, buf_id, nbstring, arg_list):
@@ -342,10 +360,11 @@ class Netbeans(asynchat.async_chat):
                 cmd, args = (lambda a='', b='':
                                     (a, b))(*nbstring.split(None, 1))
                 try:
-                    method = getattr(self, 'cmd_%s' % cmd)
-                    method(args, buf, lnum, col)
+                    method = getattr(self.client, 'cmd_%s' % cmd)
+                    method(args, buf.name, lnum, col)
                 except AttributeError:
-                    self.default_cmd_processing(cmd, args, buf, lnum, col)
+                    self.client.default_cmd_processing(
+                                    cmd, args, buf.name, lnum, col)
 
     def evt_killed(self, buf_id, nbstring, arg_list):
         """A file was closed by the user."""
@@ -354,20 +373,11 @@ class Netbeans(asynchat.async_chat):
             error('invalid bufId: "%s" in killed', buf_id)
         else:
             buf.registered = False
-            self.event_killed(buf.name)
+            self.client.event_killed(buf.name)
 
     #-----------------------------------------------------------------------
     #   Commands - Functions
     #-----------------------------------------------------------------------
-
-    def show_balloon(self, text):
-        """Show the Vim balloon."""
-        # restrict size to 2000 chars, about...
-        size = 2000
-        if len(text) > size:
-            size //= 2
-            text = text[:size] + '...' + text[-size:]
-        self.send_cmd(None, 'showBalloon', quote(text))
 
     def send_cmd(self, buf, cmd, args=''):
         """Send a command to Vim."""
@@ -421,14 +431,13 @@ class Buffer(dict):
 
     def update(self, anno_id=None, disabled=False):
         """Update the buffer with netbeans."""
-        # open file in netbeans
+        # Register file with netbeans.
         if not self.registered:
             self.nbsock.send_cmd(self, 'editFile', misc.quote(self.name))
             self.nbsock.send_cmd(self, 'putBufferNumber', misc.quote(self.name))
             self.nbsock.send_cmd(self, 'stopDocumentListen')
             self.registered = True
 
-    # readonly property
     def getname(self):
         """Buffer full path name."""
         return self.__name
@@ -472,7 +481,7 @@ class BufferSet(dict):
             raise ValueError(
                 '"pathname" is not an absolute path: %s' % pathname)
         if not pathname in self:
-            # netbeans buffer numbers start at one
+            # Netbeans buffer numbers start at one.
             buf = Buffer(pathname, len(self.buf_list) + 1, self.nbsock)
             self.buf_list.append(buf)
             dict.__setitem__(self, pathname, buf)

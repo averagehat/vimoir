@@ -7,6 +7,7 @@
     <property name="classes.dir"    value="../../build/${project.name}"/>
 
     <target name="init">
+        <echo message="Project ${ant.project.name}"/>
         <property name="filename" value="${project.name}"/>
     </target>
 
@@ -25,6 +26,7 @@
             <classpath>
                 <fileset dir="${phonemic.dir}" includes="*.jar"/>
                 <fileset dir="${jython.dir}" includes="*.jar"/>
+                <fileset dir="${jar.dir}" includes="*.jar"/>
             </classpath>
         </javac>
     </target>

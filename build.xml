@@ -5,6 +5,7 @@
     <property name="vimoir.version" value="0.1"/>
 
     <filelist id="projects" dir="src">
+        <file name="netbeans/build.xml"/>
         <file name="jynetbeans/build.xml"/>
     </filelist>
 
@@ -42,9 +43,8 @@
 
         <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
-        <copy todir="${tar.dir}" file="README"/>
         <copy todir="${tar.dir}">
-            <fileset dir="." includes="*.py"/>
+            <fileset dir="." includes="*.py,README,NEWS,LICENSE"/>
         </copy>
         <exec executable="/bin/bash" os="Linux">
             <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh'"/>

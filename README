@@ -1,33 +1,42 @@
-The 'vimoir' project
---------------------
+Contents:
 
+  1. The 'vimoir' project
+  2. The 'Phonemic' client
+  3. Running the Phonemic client on linux
+  4. Development
+  5. Notes on installing phonemic on debian lenny
+  6. Support
+  7. Licensing
+
+
+1. The 'vimoir' project
+-----------------------
 Use the 'vimoir' library to interface a java, jython or python application with
 Vim through the Netbeans protocol. The application must implement the vimoir
-'NetbeansClient' interface which is a mapping of the Vim netbeans protocol to
-NetbeansClient methods. The vimoir library takes care of the details of the
-protocol such as registering buffers with a 'bufID', 'seqno' command sequence
-numbers, quoting/unquoting strings, and managing the netbeans socket connection.
+'NetbeansClientType' interface which maps the Vim netbeans protocol to java or
+python methods. The vimoir library takes care of the details of the protocol
+such as registering buffers with a 'bufID', 'seqno' command sequence numbers,
+quoting/unquoting strings, and managing the netbeans socket connection.
 
 
-The 'Phonemic' client
----------------------
-
+2. The 'Phonemic' client
+------------------------
 The vimoir project includes the 'Phonemic' client as an example of a
-NetbeansClient. The 'Phonemic' client uses the phonemic java library to make Vim
-speak the content of buffers or speak operational messages such as Netbeans
-events.
+NetbeansClientType. The 'Phonemic' client uses the phonemic java library with
+jython or java to make Vim speak the content of buffers or speak operational
+messages such as Netbeans events.
 
-When phonemic.jar is not available or cannot be used (such as when running with
-python), the Phonemic client prints to stdoutinstead of speaking.
+You don't need to install phonemic to test the library: when phonemic.jar is not
+available or cannot be used (such as when running with python), the Phonemic
+client prints to stdout instead of speaking.
 
 Note:
 Phonemic is a java cross-platform text-to-speech engine for Windows, Mac, and
 variants of Linux, see http://sourceforge.net/projects/phonemic/
 
 
-Running the Phonemic client on linux
-------------------------------------
-
+3. Running the Phonemic client on linux
+---------------------------------------
 Follow these steps:
 
   * install speech-dispatcher (http://devel.freebsoft.org/speechd)
@@ -40,14 +49,29 @@ Follow these steps:
   * run one of the following commands:
     $ /path/to/bin/vimoir.sh python  # run Phonemic with python
     $ /path/to/bin/vimoir.sh jython  # run Phonemic with jython
-    $ /path/to/bin/vimoir.sh java    # run Phonemic with java and jython
+    $ /path/to/bin/vimoir.sh jyjava  # run Phonemic with java and jython
     $ /path/to/bin/vimoir.sh         # run Phonemic with java
   * run the ':nbstart' command in Vim to connect to the 'Phonemic' client
 
+Note:
+At the beginning of the vimoir project, not all python modules are translated to
+java, so meanwhile vimoir is run by java with the help of the jython
+PythonInterpreter, by running vimoir.sh with the 'jyjava' parameter.
 
-Notes on installing phonemic on debian lenny
---------------------------------------------
 
+4. Development
+--------------
+The vimoir project is built with http://ant.apache.org/
+
+To develop a NetbeansClientType client, one must implement a class that extends
+the 'NetbeansClient' abstract class and that implements the NetbeansClientType
+interface (see Phonemic.java). Then it is only necessary to instantiate this new
+class and to invoke its start method, in order to start listening on a
+connection from Vim and to process the netbeans protocol.
+
+
+5. Notes on installing phonemic on debian lenny
+-----------------------------------------------
 The installation of phonemic on amd64 debian lenny is not straightforward. Here
 is a recipe:
 
@@ -109,6 +133,18 @@ Install phonemic:
         -I<JAVA_HOME>/include/ -I<JAVA_HOME>/include/linux/
     build the library:
       $ make
+
+
+6. Support
+----------
+Use the issue tracker to report bugs or to request new features.
+
+
+7. Licensing
+-----------
+This software is licensed under the terms you may find in the file named
+"LICENSE" in this directory.
+
 
 ==============
 vim:tw=80:sts=2:sw=2
