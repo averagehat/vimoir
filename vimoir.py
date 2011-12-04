@@ -20,7 +20,6 @@ def main():
     phonemic = Phonemic(get_speech())
     phonemic.start()
     # Terminate all Phonemic threads by exiting.
-    print >> sys.stderr, 'Terminated.'
     sys.exit(0)
 
 if __name__ == "__main__":

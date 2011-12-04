@@ -18,11 +18,6 @@ from logging import error, info, debug
 
 import netbeans
 
-def usage():
-    print >> sys.stderr, ('usage: %s /path/to/phonemic.jar'
-                            % os.path.basename(sys.argv[0]))
-    sys.exit(1)
-
 def get_speech():
     """Return None when run by python or phonemic.jar cannot be found."""
     try:
@@ -31,10 +26,8 @@ def get_speech():
         return None
 
     try:
-        sys.path.append(sys.argv[1])
+        sys.path.extend(sys.argv[-1:])
         import org.sodbeans.phonemic.TextToSpeechFactory as TextToSpeechFactory
-    except IndexError:
-        usage()
     except java.lang.UnsatisfiedLinkError:
         pass
     except ImportError, err:
@@ -42,15 +35,12 @@ def get_speech():
         return None
     else:
         speech = TextToSpeechFactory.getDefaultTextToSpeech()
-        if speech.canSetSpeed():
-            print >> sys.stderr, 'speech speed: %f' % speech.getSpeed()
-            pass
         return speech
     sys.exit(1)
 
 class NetbeansClient(object):
     def __init__(self):
-        self.nbsock = netbeans.Netbeans(debug=1)
+        self.nbsock = netbeans.Netbeans(sys.argv[1:2] == ['--debug'])
 
     def start(self):
         self.nbsock.start(self)
@@ -104,7 +94,6 @@ def main():
     phonemic = Phonemic(get_speech())
     phonemic.start()
     # Terminate all Phonemic threads by exiting.
-    print >> sys.stderr, 'Terminated.'
     sys.exit(0)
 
 if __name__ == "__main__":

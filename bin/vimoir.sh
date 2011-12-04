@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 # Copyright 2011 Xavier de Gaye
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,26 +31,35 @@ fullpath()
 
 run()
 {
-    if [[ "$1" = "python" ]] ; then
-        python $pwd/phonemic.py
+    args=("$@")
 
-    elif [[ "$1" = "jython" ]] ; then
+    if [[ "${!#}" = "python" ]] ; then
+        unset args[${#args[@]}-1]
+        python $pwd/phonemic.py "${args[@]}"
+
+    elif [[ "${!#}" = "jython" ]] ; then
+        unset args[${#args[@]}-1]
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
-        jython $pwd/vimoir.py $PHONEMIC_DIR/phonemic.jar
+        # mandatory parameter: path to phonemic.jar file
+        jython $pwd/vimoir.py "${args[@]}" $PHONEMIC_DIR/phonemic.jar
 
-    elif [[ "$1" = "jyjava" ]] ; then
+    elif [[ "${!#}" = "jyjava" ]] ; then
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         jarfiles=$JYTHON_HOME/jython.jar
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/jynetbeans.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
+        # mandatory parameter: path to the jython standard library directory
         java -cp $jarfiles vimoir.jynetbeans.Phonemic $JYTHON_HOME/lib
 
-    else
+    elif [[ "${!#}" = "java" ]] ; then
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
         java -cp $jarfiles vimoir.netbeans.Phonemic
+
+    else
+        echo "usage: $pgmname [--debug] python|jython|jyjava|java"
     fi
 
 }

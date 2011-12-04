@@ -47,10 +47,12 @@ Follow these steps:
   * edit bin/vimoir.sh and set the paths of JYTHON_HOME (if needed),
     PHONEMIC_DIR and LINUXSPEAKJNI according to your own setup
   * run one of the following commands:
-    $ /path/to/bin/vimoir.sh python  # run Phonemic with python
-    $ /path/to/bin/vimoir.sh jython  # run Phonemic with jython
-    $ /path/to/bin/vimoir.sh jyjava  # run Phonemic with java and jython
-    $ /path/to/bin/vimoir.sh         # run Phonemic with java
+
+    $ /path/to/bin/vimoir.sh [--debug] python # run Phonemic with python
+    $ /path/to/bin/vimoir.sh [--debug] jython # run Phonemic with jython
+    $ /path/to/bin/vimoir.sh jyjava           # run Phonemic with java and jython
+    $ /path/to/bin/vimoir.sh java             # run Phonemic with java
+
   * run the ':nbstart' command in Vim to connect to the 'Phonemic' client
 
 Note:
