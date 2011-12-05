@@ -4,11 +4,6 @@
     <property name="dist.dir" location="dist"/>
     <property name="vimoir.version" value="0.1"/>
 
-    <filelist id="projects" dir="src">
-        <file name="netbeans/build.xml"/>
-        <file name="jynetbeans/build.xml"/>
-    </filelist>
-
     <macrodef name="iterate">
         <attribute name="target"/>
         <sequential>
@@ -23,11 +18,26 @@
             description="Compile, build and distribute the jar files">
     </target>
 
-    <target name="build">
-        <iterate target="build"/>
+    <target name="nojython" description="Setup without jython">
+        <filelist id="projects" dir="src">
+            <file name="netbeans/build.xml"/>
+        </filelist>
     </target>
 
-    <target name="dist" description="Distribute vimoir">
+    <target name="jython"  if="jython.dir"
+            description="Setup with jython">
+        <filelist id="projects" dir="src">
+            <file name="netbeans/build.xml"/>
+            <file name="jynetbeans/build.xml"/>
+        </filelist>
+    </target>
+
+    <target name="init" depends="nojython,jython"
+            description="Initialize subprojetcs">
+    </target>
+
+    <target name="dist" depends="init"
+            description="Distribute vimoir">
         <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>

@@ -11,6 +11,9 @@ Contents:
 
 1. The 'vimoir' project
 -----------------------
+Vimoir is a library that can be used to build Netbeans applications for Vim and
+that includes an example allowing to hear ('oir' in spanish) Vim.
+
 Use the 'vimoir' library to interface a java or a python application with
 Vim through the Netbeans protocol. The application must implement the vimoir
 'NetbeansClientType' interface which maps the Vim netbeans protocol to java or
@@ -23,8 +26,8 @@ quoting/unquoting strings, and managing the netbeans socket connection.
 ------------------------
 The vimoir project includes the 'Phonemic' client as an example of a
 NetbeansClientType. The 'Phonemic' client uses the phonemic java library with
-jython or java to make Vim speak audibly the content of buffers or speak
-operational messages such as Netbeans events.
+jython or java to make Vim speak the content of buffers or speak operational
+messages such as Netbeans events.
 
 You don't need to install phonemic to test the library: when phonemic.jar is not
 available or cannot be used (such as when running with python), the Phonemic
@@ -72,8 +75,8 @@ connection from Vim and to process the netbeans protocol.
 Vimoir is an 'ant' project, see http://ant.apache.org/
 To build the jar files and the vimoir tarball, run:
 
-$ ant -Dphonemic.dir=</path/to/phonemic_jar_dir> \
-      -Djython.dir=</path/to/jython_jar_dir>
+$ ant [-Djython.dir=</path/to/jython_jar_dir>] \
+       -Dphonemic.dir=</path/to/phonemic_jar_dir>
 
 
 5. Notes on installing phonemic on debian lenny

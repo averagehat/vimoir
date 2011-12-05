@@ -21,11 +21,7 @@
                 debug="on"
                 source="1.4"
                 target="1.4">
-            <classpath>
-                <fileset dir="${phonemic.dir}" includes="*.jar"/>
-                <fileset dir="${jython.dir}" includes="*.jar"/>
-                <fileset dir="${jar.dir}" includes="*.jar"/>
-            </classpath>
+            <classpath refid="jar-files"/>
         </javac>
     </target>
 
