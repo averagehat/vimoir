@@ -16,6 +16,17 @@
 
 package vimoir.netbeans;
 
+/**
+ * Interface implemented by Netbeans engines.
+ *
+ * <p> There is a java Netbeans engine and a jython Netbeans engine which is
+ * implemented by the <code>vimoir.jynetbeans</code> package.
+ */
 public interface NetbeansType {
+    /**
+     * Start listening on the Netbeans port and process the Netbeans protocol.
+     *
+     * @param client object implementing the Netbeans application
+     */
     public void start(NetbeansClientType client);
 }

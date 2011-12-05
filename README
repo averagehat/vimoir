@@ -14,12 +14,13 @@ Contents:
 Vimoir is a library that can be used to build Netbeans applications for Vim and
 that includes an example allowing to hear ('oir' in spanish) Vim.
 
-Use the 'vimoir' library to interface a java or a python application with
-Vim through the Netbeans protocol. The application must implement the vimoir
-'NetbeansClientType' interface which maps the Vim netbeans protocol to java or
+Use the vimoir library to interface a java or a python application with Vim
+through the Netbeans protocol. The application must implement the vimoir
+'NetbeansClientType' interface which maps the Vim netbeans events to java or
 python methods. The vimoir library takes care of the details of the protocol
-such as registering buffers with a 'bufID', 'seqno' command sequence numbers,
-quoting/unquoting strings, and managing the netbeans socket connection.
+such as registering buffers with a 'bufID', managing 'seqno' command sequence
+numbers, quoting or unquoting strings, and managing the netbeans socket
+connection.
 
 
 2. The 'Phonemic' client
@@ -66,17 +67,19 @@ PythonInterpreter and the vimoir.sh 'jyjava' parameter.
 
 4. Development
 --------------
-To develop a NetbeansClientType client, one must implement a class that extends
-the 'NetbeansClient' abstract class and that implements the NetbeansClientType
-interface (see Phonemic.java). Then it is only necessary to instantiate this new
-class and to invoke its start method, in order to start listening on a
-connection from Vim and to process the netbeans protocol.
+To develop a NetbeansClientType client such as Phonemic, one must implement a
+class that extends the 'NetbeansClient' abstract class and that implements the
+NetbeansClientType interface (see Phonemic.java). Then it is only necessary to
+instantiate this new class and to invoke its start method, in order to start
+listening on a connection from Vim and to process the netbeans protocol.
+
+See the javadoc documentation at doc/html/index.html
 
 Vimoir is an 'ant' project, see http://ant.apache.org/
 To build the jar files and the vimoir tarball, run:
 
-$ ant [-Djython.dir=</path/to/jython_jar_dir>] \
-       -Dphonemic.dir=</path/to/phonemic_jar_dir>
+  $ ant [-Djython.dir=</path/to/jython_jar_dir>] \
+         -Dphonemic.dir=</path/to/phonemic_jar_dir>
 
 
 5. Notes on installing phonemic on debian lenny

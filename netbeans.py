@@ -305,7 +305,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                     return
                 elif event == "startupDone":
                     self.ready = True
-                    self.client.event_open()
+                    self.client.event_startupDone()
                     return
         raise Error('received unexpected message: "%s"' % msg)
 
@@ -314,7 +314,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
     #-----------------------------------------------------------------------
     def evt_disconnect(self, buf_id, nbstring, arg_list):
         """Process a disconnect netbeans event."""
-        self.client.event_close()
+        self.client.event_disconnect()
         self.close()
 
     def evt_fileOpened(self, buf_id, pathname, arg_list):

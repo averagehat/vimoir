@@ -16,31 +16,33 @@
 
 package vimoir.netbeans;
 
+/**
+ * Abstract class that implements the Netbeans commands and functions.
+ */
 public abstract class NetbeansClient implements NetbeansClientType {
-    public NetbeansType nbsock;
+    private NetbeansType nbsock;
 
+    /**
+     * Instantiate the Netbeans engine.
+     */
     public NetbeansClient() {
         this.nbsock = new Netbeans();
     }
 
+    /**
+     * Set the Netbeans engine.
+     *
+     * @param nbsock the Netbeans engine
+     */
+    public void setNbsock(NetbeansType nbsock) {
+        this.nbsock = nbsock;
+    }
+
+    /**
+     * Start listening on the Netbeans port and process the Netbeans protocol.
+     */
     public void start() {
         this.nbsock.start((NetbeansClientType) this);
     }
-
-    //-----------------------------------------------------------------------
-    //   Events
-    //-----------------------------------------------------------------------
-
-    public void event_open() {}
-    public void event_close() {}
-    public void event_fileOpened(String pathname) {}
-    public void event_killed(String pathname) {}
-    public void event_error(String message) {}
-
-    //-----------------------------------------------------------------------
-    //   Commands
-    //-----------------------------------------------------------------------
-
-    public void default_cmd_processing(String cmd, String args, String pathname, int lnum, int col) {}
 }
 

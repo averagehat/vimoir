@@ -64,10 +64,10 @@ class Phonemic(NetbeansClient):
     #   Events
     #-----------------------------------------------------------------------
 
-    def event_open(self):
+    def event_startupDone(self):
         self.speak_admin_msg('Phonemic is connected to Vim')
 
-    def event_close(self):
+    def event_disconnect(self):
         self.speak_admin_msg('Phonemic is disconnected from Vim')
 
     def event_fileOpened(self, pathname):

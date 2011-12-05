@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import org.python.util.PythonInterpreter;
 import vimoir.netbeans.NetbeansClientType;
+import vimoir.netbeans.NetbeansType;
 
 /**
  * A class that speaks audibly Vim buffers content.
@@ -36,7 +37,8 @@ public class Phonemic extends vimoir.netbeans.Phonemic implements NetbeansClient
 
         // Instantiate Netbeans
         NetbeansFactory netbeansFactory = new NetbeansFactory();
-        this.nbsock = netbeansFactory.create(debug);
+        NetbeansType nbsock = netbeansFactory.create(debug);
+        this.setNbsock(nbsock);
 
         this.speech = speech;
     }

@@ -25,30 +25,50 @@ import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;
 
 /**
- * A class that speaks audibly Vim buffers content.
+ * A class using <a
+ * href="http://sourceforge.net/projects/phonemic/">phonemic</a> to speak
+ * audibly Vim buffers content.
  */
 public class Phonemic extends NetbeansClient implements NetbeansClientType {
     static Logger logger;
-    /** speech type is Object and not TextToSpeech to allow for running
-     * without phonemic.jar installed.  */
+    /** The type of speech is Object and not TextToSpeech to allow for running
+     * without phonemic.jar installed. */
     public Object speech;
 
     public Phonemic() {}
 
+    /**
+     * The constructor <b>MUST</b> invoke the superclass constructor.
+     *
+     * @param speech the phonemic TextToSpeech instance or <code>null</code>
+     */
     public Phonemic(Object speech) {
-        // One MUST invoke the superclass constructor.
         super();
         this.speech = speech;
     }
 
+    /**
+     * Speak some text.
+     *
+     * <p> When phonemic is not available, the messages are printed to stdout
+     * instead of being spoken.
+     *
+     * @param text the text to speak
+     */
     void speak(String text) {
-        // Print on stdout when phonemic is not available.
         if (this.speech != null)
             ((TextToSpeech) this.speech).speakBlocking(text);
         else
             System.out.println("speak> \"" + text + "\"");
     }
 
+    /**
+     * Speak an operational message.
+     *
+     * <p> This could be done using a second voice obtained from phonemic.
+     *
+     * @param text the text to speak
+     */
     void speak_admin_msg(String text) {
         this.speak(text);
     }
@@ -57,11 +77,11 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
     //   Events
     //-----------------------------------------------------------------------
 
-    public void event_open() {
+    public void event_startupDone() {
         this.speak_admin_msg("Phonemic is connected to Vim");
     }
 
-    public void event_close() {
+    public void event_disconnect() {
         this.speak_admin_msg("Phonemic is disconnected from Vim");
     }
 
@@ -77,20 +97,34 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         this.speak_admin_msg(msg);
     }
 
-    //-----------------------------------------------------------------------
-    //   Commands
-    //-----------------------------------------------------------------------
-
-    public void default_cmd_processing(String cmd, String args, String pathname, int lnum, int col) {
-        // Handle nbkey commands not matched with a "cmd_xxx" method.
-        logger.info("nbkey [" + cmd + ":" + args + ":" 
+    /**
+     * Handle nbkey commands not matched with a "cmd_keyName" method.
+     *
+     * <p> Here we just log the event.
+     */
+    public void default_cmd_processing(String keyName, String args, String pathname, int lnum, int col) {
+        logger.info("nbkey [" + keyName + ":" + args + ":" 
                     + new File(pathname).getName() + ":" + lnum + ":" + col + "]");
     }
 
+    /**
+     * This method speaks <i>blahblahblah</i> after a <code>:nbkey speak
+     * blahblahblah</code> Vim command.
+     *
+     * @param args     the remaining string in the <code>:nbkey</code> command
+     * @param pathname the full pathname of the file
+     * @param lnum     the cursor line number
+     * @param col      the cursor column number
+     */
     public void cmd_speak(String args, String pathname, int lnum, int col) {
         this.speak(args);
     }
 
+    /**
+     * Return a phonemic TextToSpeech object.
+     *
+     * @return <code>null</code> when the phonemic library cannot be found.
+     */
     public static Object get_speech() {
         // Setup logging.
         try {
@@ -113,6 +147,11 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         return speech;
     }
 
+    /**
+     * Run a Phonemic instance.
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         // Start netbeans processing.
         Phonemic phonemic = new Phonemic(get_speech());

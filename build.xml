@@ -2,6 +2,7 @@
 <project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
     <property name="dist.dir" location="dist"/>
+    <property name="src.doc.dir" location="src/netbeans/vimoir/netbeans"/>
     <property name="vimoir.version" value="0.1"/>
 
     <macrodef name="iterate">
@@ -36,7 +37,17 @@
             description="Initialize subprojetcs">
     </target>
 
-    <target name="dist" depends="init"
+    <target name="doc" description="Build the documentation">
+        <javadoc destdir="doc/html">
+            <classpath>
+                <fileset dir="${phonemic.dir}" includes="*.jar"/>
+            </classpath>
+            <fileset dir="${src.doc.dir}"
+                includes="NetbeansType*,NetbeansClient*,Phonemic*"/>
+        </javadoc>
+    </target>
+
+    <target name="dist" depends="init,doc"
             description="Distribute vimoir">
         <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
@@ -53,6 +64,7 @@
 
         <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
+        <copy todir="${tar.dir}/doc"><fileset dir="doc"/></copy>
         <copy todir="${tar.dir}">
             <fileset dir="." includes="*.py,README,NEWS,LICENSE"/>
         </copy>
@@ -72,6 +84,7 @@
         </delete>
         <delete dir="build"/>
         <delete dir="lib"/>
+        <delete dir="doc"/>
         <delete dir="${dist.dir}"/>
     </target>
 

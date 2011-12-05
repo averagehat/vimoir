@@ -1,0 +1,24 @@
+<body>
+<p> Vimoir is a library that can be used to build Netbeans applications for Vim
+and that includes an example allowing to hear Vim.
+
+<p> Use the vimoir library to interface a java or a python application with Vim
+through the Netbeans protocol. The application must implement the vimoir
+NetbeansClientType interface which maps Vim netbeans events to methods.  The
+vimoir library takes care of the details of the protocol such as registering
+buffers with a <i>bufID</i>, managing <i>seqno</i> command sequence numbers,
+quoting or unquoting strings, and managing the netbeans socket connection.
+
+<p> The vimoir library includes the Phonemic client as an example of a
+NetbeansClientType. The Phonemic client uses the <a
+href="http://sourceforge.net/projects/phonemic/">phonemic</a> java library to
+make Vim speak the content of buffers or speak operational messages such as
+Netbeans events.
+
+<p> To develop a NetbeansClientType client such as Phonemic, one must implement
+a class that extends the abstract NetbeansClient class and that implements the
+NetbeansClientType interface. Then it is only necessary to instantiate this new
+class and to invoke its start method, in order to start listening on a
+connection from Vim and to process the netbeans protocol.
+
+</body>
