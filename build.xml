@@ -64,7 +64,10 @@
 
         <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
-        <copy todir="${tar.dir}/doc"><fileset dir="doc"/></copy>
+        <copy todir="${tar.dir}/doc">
+            <fileset dir="doc"/>
+            <fileset dir="vimoir.wiki" includes="*.wiki"/>
+        </copy>
         <copy todir="${tar.dir}">
             <fileset dir="." includes="*.py,README,NEWS,LICENSE"/>
         </copy>
