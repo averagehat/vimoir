@@ -18,6 +18,7 @@ package vimoir.jynetbeans;
 
 import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.io.IOException;
 import org.python.util.PythonInterpreter;
 import vimoir.netbeans.NetbeansClientType;
 import vimoir.netbeans.NetbeansType;
@@ -26,10 +27,9 @@ import vimoir.netbeans.NetbeansType;
  * A class that speaks audibly Vim buffers content.
  */
 public class Phonemic extends vimoir.netbeans.Phonemic implements NetbeansClientType {
-    static Logger logger;
+    static Logger logger = Logger.getLogger("vimoir.jynetbeans");
 
-    public Phonemic(Object speech) {
-        logger = Logger.getLogger("vimoir.jynetbeans");
+    public Phonemic(Object speech) throws IOException {
         Level level = logger.getLevel();
         int debug = 0;
         if (level == Level.ALL)
@@ -43,7 +43,7 @@ public class Phonemic extends vimoir.netbeans.Phonemic implements NetbeansClient
         this.speech = speech;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // Add the current directory and jython.jar directory to jython path.
         PythonInterpreter interpreter = new PythonInterpreter();
         interpreter.exec("import sys");

@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
-    <property name="dist.dir" location="dist"/>
-    <property name="src.doc.dir" location="src/netbeans/vimoir/netbeans"/>
     <property name="vimoir.version" value="0.1"/>
+    <property name="dist.dir" location="dist"/>
+    <property name="netbeans.doc.dir" location="src/netbeans/vimoir/netbeans"/>
 
     <macrodef name="iterate">
         <attribute name="target"/>
@@ -15,7 +15,7 @@
         </sequential>
     </macrodef>
 
-    <target name="all" depends="dist"
+    <target name="all" depends="tarball"
             description="Compile, build and distribute the jar files">
     </target>
 
@@ -41,14 +41,14 @@
         <javadoc destdir="doc/html">
             <classpath>
                 <fileset dir="${phonemic.dir}" includes="*.jar"/>
+                <fileset dir="lib" includes="*.jar"/>
             </classpath>
-            <fileset dir="${src.doc.dir}"
+            <fileset dir="${netbeans.doc.dir}"
                 includes="NetbeansType*,NetbeansClient*,Phonemic*"/>
         </javadoc>
     </target>
 
-    <target name="dist" depends="init,doc"
-            description="Distribute vimoir">
+    <target name="dist" depends="init" description="Distribute vimoir">
         <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>
@@ -59,9 +59,10 @@
         <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
         <delete dir="${dist.dir}"/>
         <mkdir dir="${tar.dir}"/>
-
         <iterate target="dist"/>
+    </target>
 
+    <target name="tarball" depends="dist,doc" description="Create the tarball">
         <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
         <copy todir="${tar.dir}/doc">

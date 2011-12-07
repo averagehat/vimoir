@@ -16,6 +16,8 @@
 
 package vimoir.netbeans;
 
+import java.io.IOException;
+
 /**
  * Abstract class that implements the Netbeans commands and functions.
  */
@@ -25,7 +27,7 @@ public abstract class NetbeansClient implements NetbeansClientType {
     /**
      * Instantiate the Netbeans engine.
      */
-    public NetbeansClient() {
+    public NetbeansClient() throws IOException {
         this.nbsock = new Netbeans();
     }
 
@@ -41,7 +43,7 @@ public abstract class NetbeansClient implements NetbeansClientType {
     /**
      * Start listening on the Netbeans port and process the Netbeans protocol.
      */
-    public void start() {
+    public void start() throws IOException {
         this.nbsock.start((NetbeansClientType) this);
     }
 }

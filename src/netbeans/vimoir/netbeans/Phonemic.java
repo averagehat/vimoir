@@ -35,14 +35,14 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
      * without phonemic.jar installed. */
     public Object speech;
 
-    public Phonemic() {}
+    public Phonemic() throws IOException {}
 
     /**
      * The constructor <b>MUST</b> invoke the superclass constructor.
      *
      * @param speech the phonemic TextToSpeech instance or <code>null</code>
      */
-    public Phonemic(Object speech) {
+    public Phonemic(Object speech) throws IOException {
         super();
         this.speech = speech;
     }
@@ -152,7 +152,7 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
      *
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // Start netbeans processing.
         Phonemic phonemic = new Phonemic(get_speech());
         phonemic.start();

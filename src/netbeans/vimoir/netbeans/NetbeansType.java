@@ -28,5 +28,5 @@ public interface NetbeansType {
      *
      * @param client object implementing the Netbeans application
      */
-    public void start(NetbeansClientType client);
+    public void start(NetbeansClientType client) throws java.io.IOException;
 }

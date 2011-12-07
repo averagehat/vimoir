@@ -16,16 +16,36 @@
 
 package vimoir.netbeans;
 
+import java.io.IOException;
 import java.util.logging.Logger;
 
-class Netbeans implements NetbeansType {
-    static Logger logger = Logger.getLogger("vimoir.netbeans");
+class Netbeans extends Connection implements NetbeansType {
+    static final int PORT = 3219;
     private NetbeansClientType client;
 
-    public void start(NetbeansClientType client) {
-        this.client = client;
-        logger.severe("Netbeans.java is not yet implemented");
+    Netbeans() throws IOException {
+        super();
+        this.setTerminator("\n");
     }
 
+    void foundTerminator() {
+        // XXX
+        System.out.println(this.getBuff());
+    }
+
+    public void start(NetbeansClientType client) throws IOException {
+        String className = "vimoir.netbeans.Netbeans";
+        try {
+            Server s = new Server(Class.forName(className), null, PORT);
+        } catch (java.lang.ClassNotFoundException e) {
+            logger.severe(e.toString());
+            System.exit(1);
+        }
+        catch (java.net.SocketException e) {
+            logger.severe(e.toString());
+            System.exit(1);
+        }
+        Dispatcher.loop();
+    }
 }
 
