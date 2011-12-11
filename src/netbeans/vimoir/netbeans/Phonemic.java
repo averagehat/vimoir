@@ -97,6 +97,8 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         this.speak_admin_msg(msg);
     }
 
+    public void event_tick() {}
+
     /**
      * Handle nbkey commands not matched with a "cmd_keyName" method.
      *

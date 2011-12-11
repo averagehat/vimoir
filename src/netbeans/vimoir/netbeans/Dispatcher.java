@@ -22,6 +22,9 @@ import java.util.logging.Logger;
 import java.net.ServerSocket;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.net.URL;
+import java.util.Properties;
+import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ServerSocketChannel;
@@ -55,10 +58,6 @@ import java.nio.channels.ClosedChannelException;
  *
  */
 abstract class Dispatcher {
-    static final long SELECT_TIMEOUT = 20L;
-    static final long USER_TIMEOUT = 200L;
-    static final String CONCURRENT_MODIFICATION =
-        "possibly skipping events after a close, we will get them on next select";
     static Logger logger = Logger.getLogger("vimoir.netbeans");
     static Selector default_selector = null;
 
@@ -67,15 +66,15 @@ abstract class Dispatcher {
     SelectableChannel channel;
     InetSocketAddress address;
 
-    Dispatcher() throws java.io.IOException {
+    Dispatcher() throws IOException {
         this.initDispatcher(null, null);
     }
 
-    Dispatcher(Selector selector) throws java.io.IOException {
+    Dispatcher(Selector selector) throws IOException {
         this.initDispatcher(selector, null);
     }
 
-    Dispatcher(SocketChannel channel) throws java.io.IOException {
+    Dispatcher(SocketChannel channel) throws IOException {
         assert channel != null :  "null channel";
         this.initDispatcher(null, channel);
         this.setChannel(channel);
@@ -89,8 +88,7 @@ abstract class Dispatcher {
      * @param selector  Selector used for this channel
      * @param channel   associated SocketChannel instance
      */
-    Dispatcher(Selector selector, SocketChannel channel)
-                                                throws java.io.IOException {
+    Dispatcher(Selector selector, SocketChannel channel) throws IOException {
         assert channel != null :  "null channel";
         this.initDispatcher(selector, channel);
         this.setChannel(channel);
@@ -98,7 +96,7 @@ abstract class Dispatcher {
     }
 
     void initDispatcher(Selector selector, SelectableChannel channel)
-                                                throws java.io.IOException {
+                                                throws IOException {
         if (selector == null) {
             if (default_selector == null)
                 default_selector = Selector.open();
@@ -218,7 +216,7 @@ abstract class Dispatcher {
      *               ServerSocketChannel, false when it must be associated
      *               with an outgoing SocketChannel
      */ 
-    void createSocket(boolean server) throws java.io.IOException {
+    void createSocket(boolean server) throws IOException {
         if (server) {
             this.channel = (SelectableChannel) ServerSocketChannel.open();
         } else {
@@ -235,8 +233,7 @@ abstract class Dispatcher {
      * @param channel the SelectableChannel to register with the selector
      */
     void setChannel(SelectableChannel channel)
-                                    throws java.io.IOException,
-                                            ClosedChannelException {
+                            throws IOException, ClosedChannelException {
         this.channel = channel;
         this.channel.configureBlocking(false);
         this.addChannel();
@@ -267,7 +264,7 @@ abstract class Dispatcher {
      * @param host  host name
      * @param port  port number
      */
-    void bind(String host, int port) throws java.io.IOException {
+    void bind(String host, int port) throws IOException {
         ServerSocket socket = this.getServerSocketChannel().socket();
         if (host != null)
             this.address = new InetSocketAddress(host, port);
@@ -282,7 +279,7 @@ abstract class Dispatcher {
      * @param host  host name
      * @param port  port number
      */
-    void connect(String host, int port) throws java.io.IOException {
+    void connect(String host, int port) throws IOException {
         this.state.connecting();
         this.address = new InetSocketAddress(host, port);
         this.getSocketChannel().connect(this.address);
@@ -293,7 +290,7 @@ abstract class Dispatcher {
      *
      * @param data  buffer holding the bytes to be written
      */
-    void send(ByteBuffer data) throws java.io.IOException {
+    void send(ByteBuffer data) throws IOException {
         this.getSocketChannel().write(data);
     }
 
@@ -302,7 +299,7 @@ abstract class Dispatcher {
      *
      * @param data  buffer holding the bytes that have been read
      */
-    int recv(ByteBuffer data) throws java.io.IOException {
+    int recv(ByteBuffer data) throws IOException {
         int count = this.getSocketChannel().read(data);
         /* a closed connection is indicated by signaling
          * a read condition, and having read() return -1. */
@@ -325,7 +322,7 @@ abstract class Dispatcher {
                     ((ServerSocketChannel) this.channel).socket().close();
                 else if (this.channel instanceof SocketChannel)
                     ((SocketChannel) this.channel).socket().close();
-            } catch (java.io.IOException e) { /* ignore */ }
+            } catch (IOException e) { /* ignore */ }
         }
         this.delChannel();
     }
@@ -344,7 +341,7 @@ abstract class Dispatcher {
         SocketChannel channel = null;
         try {
             channel = this.getServerSocketChannel().accept();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.severe(e.toString());
             this.handleClose();
             return;
@@ -362,7 +359,7 @@ abstract class Dispatcher {
         if (! this.connected()) {
             try {
                 this.getSocketChannel().finishConnect();
-            } catch (java.io.IOException e) {
+            } catch (IOException e) {
                 logger.severe(e.toString());
                 this.handleClose();
                 return;
@@ -383,18 +380,25 @@ abstract class Dispatcher {
     }
 
     static void loop() {
-        loop(USER_TIMEOUT);
+        Properties props;
+        props = new Properties();
+        URL url = ClassLoader.getSystemResource("vimoir.properties");
+        try {
+            if (url != null) props.load(url.openStream());
+        } catch (IOException e) {}
+        loop(Long.parseLong(props.getProperty(
+                            "vimoir.netbeans.user_interval", "200")));
     }
 
-    static void loop(long timeout) {
+    static void loop(long user_interval) {
         try {
             if (default_selector == null)
                 default_selector = Selector.open();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.severe(e.toString());
             return;
         }
-        loop(default_selector, timeout);
+        loop(default_selector, user_interval);
     }
 
     /**
@@ -404,11 +408,20 @@ abstract class Dispatcher {
      *  The selector is a map whose items are the channels to watch.  As
      *  channels are closed they are deleted from their map.
      *
-     * @param selector  Selector used for this loop
-     * @param timeout   the timer events period in milliseconds
+     * @param selector      Selector used for this loop
+     * @param user_interval the timer events period in milliseconds
      */
-    static void loop(Selector selector, long timeout) {
+    static void loop(Selector selector, long user_interval) {
         assert selector != null :  "null selector";
+
+        Properties props;
+        props = new Properties();
+        URL url = ClassLoader.getSystemResource("vimoir.properties");
+        try {
+            if (url != null) props.load(url.openStream());
+        } catch (IOException e) {}
+        long timeout = Long.parseLong(props.getProperty(
+                                    "vimoir.netbeans.timeout", "20"));
 
         int bugCount = 0;
         boolean handleJavaFourSelectBug = isJavaFour();
@@ -421,8 +434,8 @@ abstract class Dispatcher {
             setSelectionKeys(selector);
             int eventCount = 0;
             try {
-                eventCount = selector.select(SELECT_TIMEOUT);
-            } catch (java.io.IOException e) {
+                eventCount = selector.select(timeout);
+            } catch (IOException e) {
                 logger.severe(e.toString());
                 return;
             }
@@ -435,8 +448,9 @@ abstract class Dispatcher {
                 try {
                     key = (SelectionKey) it.next();
                 } catch (java.util.ConcurrentModificationException e) {
-                    logger.severe(CONCURRENT_MODIFICATION);
-                    break;
+                    logger.severe("possibly skipping events after a close");
+                    it.remove();
+                    continue;
                 }
                 it.remove();
 
@@ -453,7 +467,7 @@ abstract class Dispatcher {
 
             /* Send the timer events. */
             Date now = new Date();
-            if (now.getTime() - lastTime.getTime() >= timeout) {
+            if (now.getTime() - lastTime.getTime() >= user_interval) {
                 bugCount = 0; // reset the bug counter on a timer event
                 lastTime = now;
                 it = selector.keys().iterator();
@@ -473,7 +487,7 @@ abstract class Dispatcher {
                 if (bugCount > 5) {
                     bugCount = 0;
                     try {
-                        Thread.sleep(SELECT_TIMEOUT);
+                        Thread.sleep(timeout);
                     } catch (java.lang.InterruptedException e) { /* ignore */ }
                 }
             }

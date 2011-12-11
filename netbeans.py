@@ -14,12 +14,14 @@
 
 import sys
 import os
+import time
 import re
 import asyncore
 import asynchat
 import socket
 import cStringIO
 import logging
+import ConfigParser
 from logging import error, info, debug
 
 try:
@@ -27,7 +29,15 @@ try:
 except ImportError:
     NetbeansType = object
 
-CONNECTION_DEFAULT = ('', 3219, 'changeme')
+PROPERTIES_PATHNAME = os.path.join('conf', 'vimoir.properties')
+SECTION_NAME = 'vimoir properties'
+DEFAULTS = {
+    'vimoir.netbeans.host': '',
+    'vimoir.netbeans.port': '3219',
+    'vimoir.netbeans.password': 'changeme',
+    'vimoir.netbeans.timeout': '20',
+    'vimoir.netbeans.user_interval': '200',
+}
 RE_ESCAPE = r'["\n\t\r\\]'                                              \
             r'# RE: escaped characters in a string'
 RE_UNESCAPE = r'\\["ntr\\]'                                             \
@@ -150,6 +160,23 @@ def setup_logger(debug):
         level = logging.DEBUG
     root.setLevel(level)
 
+class RawConfigParser(ConfigParser.RawConfigParser):
+    """A RawConfigParser subclass with a getter and no section parameter."""
+    def get(self, option):
+        return ConfigParser.RawConfigParser.get(self, SECTION_NAME, option)
+
+class FileLike(object):
+    """File like object to read a java properties file with RawConfigParser."""
+    def __init__(self, fname):
+        self.name = fname
+        self.f = None
+
+    def readline(self):
+        if not self.f:
+            self.f = open(self.name)
+            return '[%s]\n' % SECTION_NAME
+        return self.f.readline()
+
 class StderrHandler(logging.StreamHandler):
     """Stderr logging handler."""
 
@@ -206,17 +233,17 @@ class Reply(object):
         pass
 
 class Server(asyncore.dispatcher):
-    def __init__(self, nbsock):
+    def __init__(self, nbsock, host, port):
         asyncore.dispatcher.__init__(self)
         self.nbsock = nbsock
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind_listen()
+        self.bind_listen(host, port)
 
-    def bind_listen(self):
+    def bind_listen(self, host, port):
         self.set_reuse_addr()
-        self.bind(CONNECTION_DEFAULT[:2])
+        self.bind((host, int(port)))
         self.listen(1)
-        info('listening on: %s', CONNECTION_DEFAULT[:2])
+        info('listening on: %s', (host, port))
 
     def handle_accept(self):
         """Accept the connection from Vim."""
@@ -226,6 +253,9 @@ class Server(asyncore.dispatcher):
         self.nbsock.connected = True
         self.close()
         info('connected to %s', addr)
+
+    def handle_tick(self):
+        pass
 
 class Netbeans(asynchat.async_chat, NetbeansType):
     def __init__(self, debug):
@@ -239,11 +269,31 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         self.seqno = 0
         self.last_seqno = 0
         setup_logger(debug)
-        Server(self)
+        self.opts = RawConfigParser(DEFAULTS)
+        try:
+            self.opts.readfp(FileLike(PROPERTIES_PATHNAME))
+        except IOError:
+            self.opts.add_section(SECTION_NAME)
+        except ConfigParser.ParsingError, e:
+            error(e)
+        Server(self, self.opts.get('vimoir.netbeans.host'),
+                        self.opts.get('vimoir.netbeans.port'))
 
     def start(self, client):
         self.client = client
-        asyncore.loop(timeout=.020, use_poll=False)
+        timeout = int(self.opts.get('vimoir.netbeans.timeout')) / 1000.0
+        user_interval = (int(self.opts.get('vimoir.netbeans.user_interval'))
+                                            / 1000.0)
+        last = time.time()
+        while asyncore.socket_map:
+            asyncore.poll(timeout=timeout)
+
+            # send the timer events
+            now = time.time()
+            if (now - last >= user_interval):
+                last = now
+                for obj in asyncore.socket_map.values():
+                    obj.handle_tick()
 
     def collect_incoming_data(self, data):
         self.ibuff.append(data)
@@ -288,7 +338,8 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         # 'AUTH changeme'
         matchobj = re_auth.match(msg)
         if matchobj:
-            if matchobj.group('passwd') == CONNECTION_DEFAULT[2]:
+            if (matchobj.group('passwd')
+                    == self.opts.get('vimoir.netbeans.password')):
                 return
             else:
                 raise Error('invalid password: "%s"' % self.passwd)
@@ -374,6 +425,9 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         else:
             buf.registered = False
             self.client.event_killed(buf.name)
+
+    def handle_tick(self):
+        self.client.event_tick()
 
     #-----------------------------------------------------------------------
     #   Commands - Functions

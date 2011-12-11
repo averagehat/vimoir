@@ -76,6 +76,9 @@ class Phonemic(NetbeansClient):
     def event_killed(self, pathname):
         self.speak_admin_msg('Closing the file %s' % os.path.basename(pathname))
 
+    def event_tick(self):
+        pass
+
     def event_error(self, msg):
         self.speak_admin_msg(msg)
 

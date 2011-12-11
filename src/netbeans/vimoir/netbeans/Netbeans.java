@@ -38,6 +38,10 @@ class Netbeans extends Connection implements NetbeansType {
         System.out.println(this.getBuff());
     }
 
+    void handleTick() {
+        // XXX
+    }
+
     public void start(NetbeansClientType client) throws IOException {
         String className = "vimoir.netbeans.Netbeans";
         String host = this.props.getProperty("vimoir.netbeans.host", "");
