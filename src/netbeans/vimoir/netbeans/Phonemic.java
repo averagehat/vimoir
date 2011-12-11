@@ -30,7 +30,7 @@ import org.sodbeans.phonemic.tts.TextToSpeech;
  * audibly Vim buffers content.
  */
 public class Phonemic extends NetbeansClient implements NetbeansClientType {
-    static Logger logger;
+    static Logger logger = Logger.getLogger("vimoir.netbeans");
     /** The type of speech is Object and not TextToSpeech to allow for running
      * without phonemic.jar installed. */
     public Object speech;
@@ -126,18 +126,6 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
      * @return <code>null</code> when the phonemic library cannot be found.
      */
     public static Object get_speech() {
-        // Setup logging.
-        try {
-            FileInputStream configFile = new FileInputStream("conf/logging.properties");
-            LogManager.getLogManager().readConfiguration(configFile);
-        }
-        catch(IOException e) {
-            Logger.getAnonymousLogger().severe("Could not load logging.properties file");
-            Logger.getAnonymousLogger().severe(e.getMessage());
-        }
-        logger = Logger.getLogger("vimoir.netbeans");
-
-        // Obtain a phonemic TextToSpeech object.
         Object speech = null;
         try {
             speech = TextToSpeechFactory.getDefaultTextToSpeech();

@@ -50,13 +50,17 @@ run()
         jarfiles=$jarfiles:$pwd/lib/jynetbeans.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
         # mandatory parameter: path to the jython standard library directory
-        java -cp $jarfiles vimoir.jynetbeans.Phonemic $JYTHON_HOME/lib
+        java -cp $jarfiles                                          \
+            -Djava.util.logging.config.file=conf/logging.properties \
+            vimoir.jynetbeans.Phonemic $JYTHON_HOME/lib
 
     elif [[ "${!#}" = "java" ]] ; then
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
-        java -cp $jarfiles vimoir.netbeans.Phonemic
+        java -cp $jarfiles:conf                                     \
+            -Djava.util.logging.config.file=conf/logging.properties \
+            vimoir.netbeans.Phonemic
 
     else
         echo "usage: $pgmname [--debug] python|jython|jyjava|java"

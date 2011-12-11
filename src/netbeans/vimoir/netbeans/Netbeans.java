@@ -16,15 +16,20 @@
 
 package vimoir.netbeans;
 
+import java.net.URL;
+import java.util.Properties;
 import java.io.IOException;
-import java.util.logging.Logger;
 
 class Netbeans extends Connection implements NetbeansType {
-    static final int PORT = 3219;
-    private NetbeansClientType client;
+    NetbeansClientType client;
+    Properties props;
 
     Netbeans() throws IOException {
         super();
+        this.props = new Properties();
+        URL url = ClassLoader.getSystemResource("vimoir.properties");
+        if (url != null)
+            this.props.load(url.openStream());
         this.setTerminator("\n");
     }
 
@@ -35,8 +40,13 @@ class Netbeans extends Connection implements NetbeansType {
 
     public void start(NetbeansClientType client) throws IOException {
         String className = "vimoir.netbeans.Netbeans";
+        String host = this.props.getProperty("vimoir.netbeans.host", "");
+        if (host == "") host = null;
         try {
-            Server s = new Server(Class.forName(className), null, PORT);
+            Server s = new Server(Class.forName(className), host,
+                                Integer.parseInt(
+                                    this.props.getProperty(
+                                        "vimoir.netbeans.port", "3219")));
         } catch (java.lang.ClassNotFoundException e) {
             logger.severe(e.toString());
             System.exit(1);
@@ -45,6 +55,7 @@ class Netbeans extends Connection implements NetbeansType {
             logger.severe(e.toString());
             System.exit(1);
         }
+        this.client = client;
         Dispatcher.loop();
     }
 }

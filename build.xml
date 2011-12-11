@@ -4,6 +4,7 @@
     <property name="vimoir.version" value="0.1"/>
     <property name="dist.dir" location="dist"/>
     <property name="netbeans.doc.dir" location="src/netbeans/vimoir/netbeans"/>
+    <available property="readme.exists" file="README"/>
 
     <macrodef name="iterate">
         <attribute name="target"/>
@@ -48,12 +49,15 @@
         </javadoc>
     </target>
 
-    <target name="dist" depends="init" description="Distribute vimoir">
-        <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
-            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
-        </exec>
+    <target name="process-readme" if="readme.exists">
         <exec executable="/bin/sed" os="Linux" output="README">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ README"/>
+        </exec>
+    </target>
+
+    <target name="dist" depends="init,process-readme" description="Distribute vimoir">
+        <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
+            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>
         <property name="dist.name" value="${ant.project.name}-v${vimoir.version}"/>
         <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
