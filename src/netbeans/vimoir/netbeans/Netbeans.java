@@ -19,6 +19,7 @@ package vimoir.netbeans;
 import java.net.URL;
 import java.util.Properties;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 class Netbeans extends Connection implements NetbeansType {
     NetbeansClientType client;
@@ -30,6 +31,13 @@ class Netbeans extends Connection implements NetbeansType {
         URL url = ClassLoader.getSystemResource("vimoir.properties");
         if (url != null)
             this.props.load(url.openStream());
+
+        // set the encoding
+        Charset charset = Charset.forName(
+                this.props.getProperty("vimoir.netbeans.encoding", "UTF-8"));
+        this.encoder = charset.newEncoder();
+        this.decoder = charset.newDecoder();
+
         this.setTerminator("\n");
     }
 
@@ -43,19 +51,12 @@ class Netbeans extends Connection implements NetbeansType {
     }
 
     public void start(NetbeansClientType client) throws IOException {
-        String className = "vimoir.netbeans.Netbeans";
         String host = this.props.getProperty("vimoir.netbeans.host", "");
         if (host == "") host = null;
         try {
-            Server s = new Server(Class.forName(className), host,
-                                Integer.parseInt(
-                                    this.props.getProperty(
-                                        "vimoir.netbeans.port", "3219")));
-        } catch (java.lang.ClassNotFoundException e) {
-            logger.severe(e.toString());
-            System.exit(1);
-        }
-        catch (java.net.SocketException e) {
+            new Server(this, host, Integer.parseInt(this.props.getProperty(
+                                            "vimoir.netbeans.port", "3219")));
+        } catch (java.net.SocketException e) {
             logger.severe(e.toString());
             System.exit(1);
         }

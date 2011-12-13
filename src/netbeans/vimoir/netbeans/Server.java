@@ -20,17 +20,14 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 /**
- * A tcp server.
- *
- * Delegate each accepted connection to a new instance of clazz, that must be a
- * subclass of Connection.
+ * Delegate an accepted connection to a Connection instance.
  */
 class Server extends Dispatcher {
-    Class clazz;
+    Connection conn;
 
-    Server(Class clazz, String host, int port) throws java.io.IOException {
+    Server(Connection conn, String host, int port) throws java.io.IOException {
         super();
-        this.initServer(clazz, host, port);
+        this.initServer(conn, host, port);
     }
 
     /**
@@ -38,26 +35,19 @@ class Server extends Dispatcher {
      *
      * @param selector  Selector used for the Server and all accepted incoming
      *                  connections channels
-     * @param clazz     Class object of the incoming connections channels
+     * @param conn      Connection instance
      * @param host      host name, null to listen from any interface (INADDR_ANY)
      * @param port      port number to listen to
      */
-    Server(Selector selector,
-                Class clazz, String host, int port) throws java.io.IOException {
+    Server(Selector selector, Connection conn,
+                String host, int port) throws java.io.IOException {
         super(selector);
-        this.initServer(clazz, host, port);
+        this.initServer(conn, host, port);
     }
 
-    void initServer(Class clazz, String host, int port) throws java.io.IOException {
-        String ConnectionClass = "vimoir.netbeans.Connection";
-        try {
-            assert Class.forName(ConnectionClass).isAssignableFrom(clazz)
-                                        : "not a subclass of Connection";
-        } catch (java.lang.ClassNotFoundException e) {
-            logger.severe(e.toString());
-            System.exit(1);
-        }
-        this.clazz = clazz;
+    void initServer(Connection conn, String host, int port)
+                                                throws java.io.IOException {
+        this.conn = conn;
         this.createSocket(true);
         this.setReuseAddr();
         this.bind(host, port);
@@ -71,21 +61,11 @@ class Server extends Dispatcher {
     void handleTick() {}
 
     void handleAccept(SocketChannel channel) {
-        Connection conn = null;
-        try {
-            conn = (Connection) this.clazz.newInstance();
-        } catch (java.lang.InstantiationException e) {
-            logger.severe(e.toString() + this.toString());
-        } catch (java.lang.IllegalAccessException e) {
-            logger.severe(e.toString() + this.toString());
-        }
-        if (conn != null) {
-            logger.info(this.toString());
-            conn.selector = this.selector;
-            conn.setSocketChannel(channel);
-            // this Server accepts only one connection
-            this.close();
-        }
+        logger.info(this.toString());
+        this.conn.selector = this.selector;
+        this.conn.setSocketChannel(channel);
+        // this Server accepts only one connection
+        this.close();
     }
 
     void handleConnect() {}

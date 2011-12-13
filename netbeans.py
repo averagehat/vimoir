@@ -35,22 +35,23 @@ DEFAULTS = {
     'vimoir.netbeans.host': '',
     'vimoir.netbeans.port': '3219',
     'vimoir.netbeans.password': 'changeme',
+    'vimoir.netbeans.encoding': 'UTF-8',
     'vimoir.netbeans.timeout': '20',
     'vimoir.netbeans.user_interval': '200',
 }
-RE_ESCAPE = r'["\n\t\r\\]'                                              \
-            r'# RE: escaped characters in a string'
-RE_UNESCAPE = r'\\["ntr\\]'                                             \
-              r'# RE: escaped characters in a quoted string'
-RE_AUTH = r'^\s*AUTH\s*(?P<passwd>\S+)\s*$'                             \
-          r'# RE: password authentication'
-RE_RESPONSE = r'^\s*(?P<seqno>\d+)\s*(?P<args>.*)\s*$'                  \
-              r'# RE: a netbeans response'
-RE_EVENT = r'^\s*(?P<buf_id>\d+):(?P<event>\S+)=(?P<seqno>\d+)'         \
-           r'\s*(?P<args>.*)\s*$'                                       \
-           r'# RE: a netbeans event message'
-RE_LNUMCOL = r'^(?P<lnum>\d+)/(?P<col>\d+)'                             \
-             r'# RE: lnum/col'
+RE_ESCAPE = ur'["\n\t\r\\]'                                             \
+            ur'# RE: escaped characters in a string'
+RE_UNESCAPE = ur'\\["ntr\\]'                                            \
+              ur'# RE: escaped characters in a quoted string'
+RE_AUTH = ur'^\s*AUTH\s*(?P<passwd>\S+)\s*$'                            \
+          ur'# RE: password authentication'
+RE_RESPONSE = ur'^\s*(?P<seqno>\d+)\s*(?P<args>.*)\s*$'                 \
+              ur'# RE: a netbeans response'
+RE_EVENT = ur'^\s*(?P<buf_id>\d+):(?P<event>\S+)=(?P<seqno>\d+)'        \
+           ur'\s*(?P<args>.*)\s*$'                                      \
+           ur'# RE: a netbeans event message'
+RE_LNUMCOL = ur'^(?P<lnum>\d+)/(?P<col>\d+)'                            \
+             ur'# RE: lnum/col'
 
 # compile regexps
 re_escape = re.compile(RE_ESCAPE, re.VERBOSE)
@@ -62,29 +63,29 @@ re_lnumcol = re.compile(RE_LNUMCOL, re.VERBOSE)
 
 def escape_char(matchobj):
     """Escape special characters in string."""
-    if matchobj.group(0) == '"': return r'\"'
-    if matchobj.group(0) == '\n': return r'\n'
-    if matchobj.group(0) == '\t': return r'\t'
-    if matchobj.group(0) == '\r': return r'\r'
-    if matchobj.group(0) == '\\': return r'\\'
+    if matchobj.group(0) == u'"': return ur'\"'
+    if matchobj.group(0) == u'\n': return ur'\n'
+    if matchobj.group(0) == u'\t': return ur'\t'
+    if matchobj.group(0) == u'\r': return ur'\r'
+    if matchobj.group(0) == u'\\': return ur'\\'
     assert False
 
 def quote(msg):
     """Quote 'msg' and escape special characters."""
-    return '"%s"' % re_escape.sub(escape_char, msg)
+    return u'"%s"' % re_escape.sub(escape_char, msg)
 
 def unescape_char(matchobj):
     """Remove escape on special characters in quoted string."""
-    if matchobj.group(0) == r'\"': return '"'
-    if matchobj.group(0) == r'\n': return '\n'
-    if matchobj.group(0) == r'\t': return '\t'
-    if matchobj.group(0) == r'\r': return '\r'
-    if matchobj.group(0) == r'\\': return '\\'
+    if matchobj.group(0) == ur'\"': return u'"'
+    if matchobj.group(0) == ur'\n': return u'\n'
+    if matchobj.group(0) == ur'\t': return u'\t'
+    if matchobj.group(0) == ur'\r': return u'\r'
+    if matchobj.group(0) == ur'\\': return u'\\'
     assert False
 
 def unquote(msg):
     """Remove escapes from escaped characters in a quoted string."""
-    return '%s' % re_unescape.sub(unescape_char, msg)
+    return u'%s' % re_unescape.sub(unescape_char, msg)
 
 def evt_ignore(buf_id, msg, arg_list):
     """Ignore not implemented received events."""
@@ -111,19 +112,19 @@ def parse_msg(msg):
     matchobj = re_event.match(msg)
     if matchobj:
         # an event
-        bufid_name = matchobj.group('buf_id')
-        event = matchobj.group('event')
+        bufid_name = matchobj.group(u'buf_id')
+        event = matchobj.group(u'event')
     else:
         # a reply
-        bufid_name = '0'
-        event = ''
+        bufid_name = u'0'
+        event = u''
         matchobj = re_response.match(msg)
     if not matchobj:
-        error('discarding invalid netbeans message: "%s"', msg)
+        error(u'discarding invalid netbeans message: "%s"', msg)
         return (None,)
 
-    seqno = matchobj.group('seqno')
-    args = matchobj.group('args').strip()
+    seqno = matchobj.group(u'seqno')
+    args = matchobj.group(u'args').strip()
     try:
         buf_id = int(bufid_name)
         seqno = int(seqno)
@@ -131,14 +132,14 @@ def parse_msg(msg):
         assert False, 'error in regexp'
 
     # a netbeans string
-    nbstring = ''
-    if args and args[0] == "\"":
-        end = args.rfind("\"")
+    nbstring = u''
+    if args and args[0] == u"\"":
+        end = args.rfind(u"\"")
         if end != -1 and end != 0:
             nbstring = args[1:end]
             # Do not unquote nbkey parameter twice since vim already parses
             # function parameters as strings (see :help expr-quote).
-            if event != 'keyAtPos':
+            if event != u'keyAtPos':
                 nbstring = unquote(nbstring)
         else:
             end = -1
@@ -261,7 +262,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
     def __init__(self, debug):
         asynchat.async_chat.__init__(self)
         self.client = None
-        self.set_terminator('\n')
+        self.set_terminator(u'\n')
         self.ibuff = []
         self.ready = False
         self.reply_fifo = asynchat.fifo()
@@ -276,6 +277,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
             self.opts.add_section(SECTION_NAME)
         except ConfigParser.ParsingError, e:
             error(e)
+        self.encoding = self.opts.get('vimoir.netbeans.encoding')
         Server(self, self.opts.get('vimoir.netbeans.host'),
                         self.opts.get('vimoir.netbeans.port'))
 
@@ -296,11 +298,11 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                     obj.handle_tick()
 
     def collect_incoming_data(self, data):
-        self.ibuff.append(data)
+        self.ibuff.append(unicode(data, self.encoding))
 
     def found_terminator(self):
         """Process new line terminated netbeans message."""
-        msg = ''.join(self.ibuff)
+        msg = u''.join(self.ibuff)
         self.ibuff = []
         debug(msg)
 
@@ -338,7 +340,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         # 'AUTH changeme'
         matchobj = re_auth.match(msg)
         if matchobj:
-            if (matchobj.group('passwd')
+            if (matchobj.group(u'passwd')
                     == self.opts.get('vimoir.netbeans.password')):
                 return
             else:
@@ -352,9 +354,9 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                                 (a, b, c, d, e, f))(*parse_msg(msg)))
 
             if is_event:
-                if event == "version":
+                if event == u"version":
                     return
-                elif event == "startupDone":
+                elif event == u"startupDone":
                     self.ready = True
                     self.client.event_startupDone()
                     return
@@ -375,9 +377,9 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                 buf = self._bset[pathname]
                 if buf.buf_id != buf_id:
                     if buf_id == 0:
-                        self.send_cmd(buf, 'putBufferNumber',
+                        self.send_cmd(buf, u'putBufferNumber',
                                                 quote(pathname))
-                        self.send_cmd(buf, 'stopDocumentListen')
+                        self.send_cmd(buf, u'stopDocumentListen')
                         buf.registered = True
                         buf.update()
                     else:
@@ -388,8 +390,8 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                 error('absolute pathname required')
         else:
             self.client.event_error(
-                'You cannot use netbeans on a "[No Name]" file.\n'
-                'Please, edit a file.'
+                u'You cannot use netbeans on a "[No Name]" file.\n'
+                u'Please, edit a file.'
                 )
 
     def evt_keyAtPos(self, buf_id, nbstring, arg_list):
@@ -406,9 +408,9 @@ class Netbeans(asynchat.async_chat, NetbeansType):
             if not matchobj:
                 error('invalid lnum/col: %s', arg_list[1])
             else:
-                lnum = int(matchobj.group('lnum'))
-                col = int(matchobj.group('col'))
-                cmd, args = (lambda a='', b='':
+                lnum = int(matchobj.group(u'lnum'))
+                col = int(matchobj.group(u'col'))
+                cmd, args = (lambda a=u'', b=u'':
                                     (a, b))(*nbstring.split(None, 1))
                 try:
                     method = getattr(self.client, 'cmd_%s' % cmd)
@@ -433,11 +435,11 @@ class Netbeans(asynchat.async_chat, NetbeansType):
     #   Commands - Functions
     #-----------------------------------------------------------------------
 
-    def send_cmd(self, buf, cmd, args=''):
+    def send_cmd(self, buf, cmd, args=u''):
         """Send a command to Vim."""
-        self.send_request('%d:%s!%d%s%s\n', buf, cmd, args)
+        self.send_request(u'%d:%s!%d%s%s\n', buf, cmd, args)
 
-    def send_function(self, buf, function, args=''):
+    def send_function(self, buf, function, args=u''):
         """Send a function call to Vim."""
         try:
             clss = eval('%sReply' % function)
@@ -446,20 +448,20 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         assert issubclass(clss, Reply)
         reply = clss(buf, self.seqno + 1, self)
         self.reply_fifo.push(reply)
-        self.send_request('%d:%s/%d%s%s\n', buf, function, args)
+        self.send_request(u'%d:%s/%d%s%s\n', buf, function, args)
 
     def send_request(self, fmt, buf, request, args):
         """Send a netbeans function or command."""
         self.seqno += 1
         buf_id = 0
-        space = ' '
+        space = u' '
         if isinstance(buf, Buffer):
             buf_id = buf.buf_id
         if not args:
-            space = ''
+            space = u''
         msg = fmt % (buf_id, request, self.seqno, space, args)
-        self.push(msg)
-        debug(msg.strip('\n'))
+        self.push(msg.encode(self.encoding))
+        debug(msg.strip(u'\n'))
 
 class Buffer(dict):
     """A Vim buffer.
@@ -487,9 +489,9 @@ class Buffer(dict):
         """Update the buffer with netbeans."""
         # Register file with netbeans.
         if not self.registered:
-            self.nbsock.send_cmd(self, 'editFile', misc.quote(self.name))
-            self.nbsock.send_cmd(self, 'putBufferNumber', misc.quote(self.name))
-            self.nbsock.send_cmd(self, 'stopDocumentListen')
+            self.nbsock.send_cmd(self, u'editFile', misc.quote(self.name))
+            self.nbsock.send_cmd(self, u'putBufferNumber', misc.quote(self.name))
+            self.nbsock.send_cmd(self, u'stopDocumentListen')
             self.registered = True
 
     def getname(self):

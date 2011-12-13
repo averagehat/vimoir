@@ -100,5 +100,9 @@ def main():
     sys.exit(0)
 
 if __name__ == "__main__":
+    if sys.version_info >= (3, 0):
+        sys.stderr.write("Python 3 is not supported.\n")
+        sys.exit(1)
+
     main()
 
