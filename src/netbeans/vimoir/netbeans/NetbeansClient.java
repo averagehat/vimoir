@@ -24,9 +24,7 @@ import java.io.IOException;
 public abstract class NetbeansClient implements NetbeansClientType {
     private NetbeansType nbsock;
 
-    /**
-     * Instantiate the Netbeans engine.
-     */
+    /** Instantiate the Netbeans engine. */
     public NetbeansClient() throws IOException {
         this.nbsock = new Netbeans();
     }
@@ -40,19 +38,45 @@ public abstract class NetbeansClient implements NetbeansClientType {
         this.nbsock = nbsock;
     }
 
-    /**
-     * Start listening on the Netbeans port and process the Netbeans protocol.
-     */
+    /** Start listening on the Netbeans port and process the Netbeans protocol. */
     public void start() throws IOException {
         this.nbsock.start((NetbeansClientType) this);
     }
 
-    /**
-     * Return the Buffer with this pathname.
-     */
+    /** Return the Buffer instance associated with this pathname. */
     public Buffer get_buffer(String pathname) throws NetbeansException {
         return this.nbsock.get_buffer(pathname);
     }
 
+    /**
+     * Return a quoted string where special characters are escaped.
+     *
+     * @param text the string to quote
+     * @see help in Vim <code>:help nb-terms</code>
+     */
+    public static String quote(String text) {
+        return Netbeans.quote(text);
+    }
+
+    /**
+     * Send a command to Vim.
+     *
+     * @param buf the Buffer instance
+     * @param cmd the Netbeans command name
+     */
+    public void send_cmd(Buffer buf, String cmd) {
+        this.send_cmd(buf, cmd, "");
+    }
+
+    /**
+     * Send a command to Vim.
+     *
+     * @param buf the Buffer instance
+     * @param cmd the Netbeans command name
+     * @param args the command parameters
+     */
+    public void send_cmd(Buffer buf, String cmd, String args) {
+        this.nbsock.send_request("{0}:{1}!{2}{3}{4}", buf, cmd, args);
+    }
 }
 

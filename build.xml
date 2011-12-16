@@ -45,7 +45,6 @@
                 <fileset dir="lib" includes="*.jar"/>
             </classpath>
             <fileset dir="${netbeans.doc.dir}" includes="*Exception.java"/>
-            <fileset dir="${netbeans.doc.dir}" includes="NetbeansType.java"/>
             <fileset dir="${netbeans.doc.dir}" includes="NetbeansClient*"/>
             <fileset dir="${netbeans.doc.dir}" includes="Phonemic.java"/>
             <fileset dir="${netbeans.doc.dir}" includes="Buffer.java"/>

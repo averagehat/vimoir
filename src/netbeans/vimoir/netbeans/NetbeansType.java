@@ -30,8 +30,9 @@ public interface NetbeansType {
      */
     public void start(NetbeansClientType client) throws java.io.IOException;
 
-    /**
-     * Return the Buffer with this pathname.
-     */
+    /** Return the Buffer instance associated with this pathname. */
     public Buffer get_buffer(String pathname) throws NetbeansException;
+
+    /** Send a netbeans function or command. */
+    public void send_request(String fmt, Buffer buf, String request, String args);
 }

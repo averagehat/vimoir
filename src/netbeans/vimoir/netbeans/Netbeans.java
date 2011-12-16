@@ -267,7 +267,7 @@ class Netbeans extends Connection implements NetbeansType {
     }
 
     /** Send a netbeans function or command. */
-    void send_request(String fmt, Buffer buf, String request, String args) {
+    public void send_request(String fmt, Buffer buf, String request, String args) {
         this.seqno += 1;
         int buf_id = 0;
         if (buf != null)
@@ -292,7 +292,7 @@ class Netbeans extends Connection implements NetbeansType {
         return "";
     }
 
-    /** Remove escape on special characters in quoted string. */
+    /** Quote 'msg' and escape special characters. */
     static String quote(String text) {
         String result = "";
         int i = 0;
