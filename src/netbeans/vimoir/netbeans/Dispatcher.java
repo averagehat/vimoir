@@ -43,12 +43,12 @@ import java.nio.channels.ClosedChannelException;
  * method, or by using a constructor that takes a SocketChannel as parameter.
  * The class default_selector is used as the Selector by default.
  *
- * Each channel gets IO events through the handleRead, handleWrite,
- * handleAccept and handleConnect methods. Note that all events are not always
+ * Each channel gets IO events through the handle_read, handle_write,
+ * handle_accept and handle_connect methods. Note that all events are not always
  * meaningful depending on the socket type, for example outgoing connections
- * never receive handleAccept events.
+ * never receive handle_accept events.
  *
- * All channels receive timer events through the handleTick method, and it is
+ * All channels receive timer events through the handle_tick method, and it is
  * possible to instantiate a channel that receives only timer events by
  * subclassing the Timer class.
  *
@@ -83,7 +83,7 @@ abstract class Dispatcher {
 
     /**
      * Use this constructor when the SocketChannel parameter has been obtained
-     * from an invocation of handleAccept by another listening channel.
+     * from an invocation of handle_accept by another listening channel.
      *
      * @param selector  Selector used for this channel
      * @param channel   associated SocketChannel instance
@@ -112,14 +112,14 @@ abstract class Dispatcher {
      * This method is invoked whenever readyToRead() is true, and there is data
      * ready to be read from the channel.
      */
-    abstract void handleRead();
+    abstract void handle_read();
 
     /**
      * This method is invoked whenever readyToWrite() is true, and the channel
      * can be written to (a socket can be written to when it is connected and
      * when the internal kernel buffer is not full).
      */
-    abstract void handleWrite();
+    abstract void handle_write();
 
     /**
      * This method is invoked whenever readyToAccept() is true, and there is an
@@ -132,27 +132,27 @@ abstract class Dispatcher {
      *
      * @param channel of the incoming connection request
      */
-    abstract void handleAccept(SocketChannel channel);
+    abstract void handle_accept(SocketChannel channel);
 
     /**
      * This method is invoked when readyToConnect() is true, the channel is
      * associated with an outgoing connection and the socket three-way
      * connection handshake has been successfully completed.
      */
-    abstract void handleConnect();
+    abstract void handle_connect();
 
     /**
      * This method is invoked at each timer event.
      */
-    abstract void handleTick();
+    abstract void handle_tick();
 
     /**
      * This method is invoked when the channel is about to close. It is invoked
      * after a remote disconnection or on exceptionnal events such as
      * IOException exceptions. A subclass of Dispatcher that overrides this
-     * method must call super.handleClose();
+     * method must call super.handle_close();
      */
-    void handleClose() {
+    void handle_close() {
         this.close();
     }
 
@@ -226,7 +226,7 @@ abstract class Dispatcher {
     }
 
     /**
-     * Call this method with the SocketChannel obtained through a handleAccept
+     * Call this method with the SocketChannel obtained through a handle_accept
      * event as its parameter, in order to register the channel with
      * its selector.
      *
@@ -304,7 +304,7 @@ abstract class Dispatcher {
         /* a closed connection is indicated by signaling
          * a read condition, and having read() return -1. */
         if (count == -1) {
-            this.handleClose();
+            this.handle_close();
             count = 0;
         }
         return count;
@@ -329,12 +329,12 @@ abstract class Dispatcher {
 
     void handle_read_event() {
         //logger.finest("handle_read_event" + this.toString());
-        this.handleRead();
+        this.handle_read();
     }
 
     void handle_write_event() {
         //logger.finest("handle_write_event" + this.toString());
-        this.handleWrite();
+        this.handle_write();
     }
 
     void handle_accept_event() {
@@ -343,13 +343,13 @@ abstract class Dispatcher {
             channel = this.getServerSocketChannel().accept();
         } catch (IOException e) {
             logger.severe(e.toString());
-            this.handleClose();
+            this.handle_close();
             return;
         }
 
         if (channel != null) {
             logger.info("handle_accept_event: " + this.toString());
-            this.handleAccept(channel);
+            this.handle_accept(channel);
         }
         else
             logger.severe("handle_accept_event null event: " + this.toString());
@@ -361,16 +361,16 @@ abstract class Dispatcher {
                 this.getSocketChannel().finishConnect();
             } catch (IOException e) {
                 logger.severe(e.toString());
-                this.handleClose();
+                this.handle_close();
                 return;
             }
             this.state.connected();
             logger.info("handle_connect_event" + this.toString());
-            this.handleConnect();
+            this.handle_connect();
         }
     }
 
-    void handle_tick_event() { this.handleTick(); }
+    void handle_tick_event() { this.handle_tick(); }
 
     public String toString() {
         if (this.channel == null)

@@ -46,5 +46,13 @@ public abstract class NetbeansClient implements NetbeansClientType {
     public void start() throws IOException {
         this.nbsock.start((NetbeansClientType) this);
     }
+
+    /**
+     * Return the Buffer with this pathname.
+     */
+    public Buffer get_buffer(String pathname) throws NetbeansException {
+        return this.nbsock.get_buffer(pathname);
+    }
+
 }
 

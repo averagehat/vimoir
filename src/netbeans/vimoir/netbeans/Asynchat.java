@@ -28,7 +28,7 @@ import java.nio.charset.CharacterCodingException;
  * A class supporting chat-style (command/response) protocols.
  *
  * This is an abstract class. You must derive from this class, and implement
- * the two methods collectIncomingData and foundTerminator.
+ * the two methods collect_incoming_data and found_terminator.
  *
  */
 abstract class Asynchat extends Dispatcher {
@@ -78,13 +78,13 @@ abstract class Asynchat extends Dispatcher {
      *
      * @param str   received string
      */
-    abstract void collectIncomingData(String str);
+    abstract void collect_incoming_data(String str);
 
     /**
      * This method is invoked when the terminator has been received from the
      * channel.
      */
-    abstract void foundTerminator();
+    abstract void found_terminator();
 
     boolean readyToWrite() {
         return (this.state.writable() && this.outbuf.remaining() != 0);
@@ -124,25 +124,25 @@ abstract class Asynchat extends Dispatcher {
             return str;
         } catch (java.io.IOException e) {
             logger.severe(e.toString());
-            this.handleClose();
+            this.handle_close();
             return "";
         }
     }
 
-    void handleWrite() {
+    void handle_write() {
         try {
             this.initiateSend();
         } catch (java.io.IOException e) {
             logger.severe(e.toString());
-            this.handleClose();
+            this.handle_close();
         }
     }
-    void handleRead() {
+    void handle_read() {
         String str = this.recv();
         if (str == null || str.length() == 0)
             return;
         if (this.terminator == null) {
-            this.collectIncomingData(str);
+            this.collect_incoming_data(str);
             return;
         }
 
@@ -151,14 +151,14 @@ abstract class Asynchat extends Dispatcher {
         while (pos < len) {
             int index = str.indexOf(this.terminator, pos);
             if (index == -1) {
-                this.collectIncomingData(str.substring(pos));
+                this.collect_incoming_data(str.substring(pos));
                 break;
             } else {
                 // don't report an empty string
                 if (index > 0)
-                    this.collectIncomingData(str.substring(pos, index));
+                    this.collect_incoming_data(str.substring(pos, index));
                 pos = index + this.termlen;
-                this.foundTerminator();
+                this.found_terminator();
             }
         }
     }

@@ -17,21 +17,10 @@
 package vimoir.netbeans;
 
 /**
- * Interface implemented by Netbeans engines.
- *
- * <p> There is a java Netbeans engine and a jython Netbeans engine which is
- * implemented by the <code>vimoir.jynetbeans</code> package.
+ * NetbeansException documentation.
  */
-public interface NetbeansType {
-    /**
-     * Start listening on the Netbeans port and process the Netbeans protocol.
-     *
-     * @param client object implementing the Netbeans application
-     */
-    public void start(NetbeansClientType client) throws java.io.IOException;
-
-    /**
-     * Return the Buffer with this pathname.
-     */
-    public Buffer get_buffer(String pathname) throws NetbeansException;
+public class NetbeansException extends Exception {
+    public NetbeansException(String msg) {
+        super(msg);
+    }
 }

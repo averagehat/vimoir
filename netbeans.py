@@ -211,6 +211,16 @@ class StderrHandler(logging.StreamHandler):
 class Error(Exception):
     """Base class for exceptions."""
 
+class NetbeansClient(object):
+    def __init__(self):
+        self.nbsock = Netbeans(sys.argv[1:2] == ['--debug'])
+
+    def start(self):
+        self.nbsock.start(self)
+
+    def get_buffer(pathname):
+        return self.nbsock.get_buffer(pathname)
+
 class Reply(object):
     """Abstract class. A Reply instance is a callable used to process
     the result of a  function call in the reply received from netbeans.
@@ -340,11 +350,11 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         # 'AUTH changeme'
         matchobj = re_auth.match(msg)
         if matchobj:
-            if (matchobj.group(u'passwd')
-                    == self.opts.get('vimoir.netbeans.password')):
+            password = matchobj.group(u'passwd')
+            if (password == self.opts.get('vimoir.netbeans.password')):
                 return
             else:
-                raise Error('invalid password: "%s"' % self.passwd)
+                raise Error('invalid password: "%s"' % password)
         # '0:version=0 "2.3"'
         # '0:startupDone=0'
         else:
@@ -362,6 +372,9 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                     return
         raise Error('received unexpected message: "%s"' % msg)
 
+    def get_buffer(pathname):
+        return self._bset[pathname]
+
     #-----------------------------------------------------------------------
     #   Events
     #-----------------------------------------------------------------------
@@ -377,15 +390,11 @@ class Netbeans(asynchat.async_chat, NetbeansType):
                 buf = self._bset[pathname]
                 if buf.buf_id != buf_id:
                     if buf_id == 0:
-                        self.send_cmd(buf, u'putBufferNumber',
-                                                quote(pathname))
-                        self.send_cmd(buf, u'stopDocumentListen')
-                        buf.registered = True
-                        buf.update()
+                        buf.register(editFile=False)
                     else:
                         error('got fileOpened with wrong bufId')
                         return
-                self.client.event_fileOpened(pathname)
+                self.client.event_fileOpened(buf)
             else:
                 error('absolute pathname required')
         else:
@@ -396,7 +405,7 @@ class Netbeans(asynchat.async_chat, NetbeansType):
 
     def evt_keyAtPos(self, buf_id, nbstring, arg_list):
         """Process a keyAtPos netbeans event."""
-        buf = self._bset.getbuf(buf_id)
+        buf = self._bset.getbuf_at(buf_id)
         if buf is None:
             error('invalid bufId: "%d" in keyAtPos', buf_id)
         elif not nbstring:
@@ -408,25 +417,24 @@ class Netbeans(asynchat.async_chat, NetbeansType):
             if not matchobj:
                 error('invalid lnum/col: %s', arg_list[1])
             else:
-                lnum = int(matchobj.group(u'lnum'))
-                col = int(matchobj.group(u'col'))
+                buf.lnum = int(matchobj.group(u'lnum'))
+                buf.col = int(matchobj.group(u'col'))
                 cmd, args = (lambda a=u'', b=u'':
                                     (a, b))(*nbstring.split(None, 1))
                 try:
                     method = getattr(self.client, 'cmd_%s' % cmd)
-                    method(args, buf.name, lnum, col)
+                    method(args, buf)
                 except AttributeError:
-                    self.client.default_cmd_processing(
-                                    cmd, args, buf.name, lnum, col)
+                    self.client.default_cmd_processing(cmd, args, buf)
 
     def evt_killed(self, buf_id, nbstring, arg_list):
-        """A file was closed by the user."""
-        buf = self._bset.getbuf(buf_id)
+        """A file was deleted or wiped out by the user."""
+        buf = self._bset.getbuf_at(buf_id)
         if buf is None:
             error('invalid bufId: "%s" in killed', buf_id)
         else:
             buf.registered = False
-            self.client.event_killed(buf.name)
+            self.client.event_killed(buf)
 
     def handle_tick(self):
         self.client.event_tick()
@@ -463,41 +471,57 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         self.push(msg.encode(self.encoding))
         debug(msg.strip(u'\n'))
 
-class Buffer(dict):
+class Buffer(object):
     """A Vim buffer.
 
     Instance attributes:
-        name: readonly property
+        pathname: readonly property
             full pathname
+        registered: boolean
+            True: buffer registered to Vim with netbeans
+        lnum: int
+            line number of the cursor (first line is one)
+        col: int
+            column number of the cursor (in bytes, zero based)
         buf_id: int
             netbeans buffer number, starting at one
         nbsock: netbeans.Netbeans
             the netbeans asynchat socket
-        registered: boolean
-            True: buffer registered to Vim with netbeans
 
     """
 
-    def __init__(self, name, buf_id, nbsock):
+    def __init__(self, pathname, buf_id, nbsock):
         """Constructor."""
-        self.__name = name
+        self.__pathname = pathname
+        self.registered = False
+        self.lnum = 1
+        self.col = 0
         self.buf_id = buf_id
         self.nbsock = nbsock
-        self.registered = False
 
-    def update(self, anno_id=None, disabled=False):
-        """Update the buffer with netbeans."""
-        # Register file with netbeans.
+    def register(self, editFile=True):
+        """Register the buffer with Netbeans."""
         if not self.registered:
-            self.nbsock.send_cmd(self, u'editFile', misc.quote(self.name))
-            self.nbsock.send_cmd(self, u'putBufferNumber', misc.quote(self.name))
+            if editFile:
+                self.nbsock.send_cmd(self, u'editFile', quote(self.pathname))
+            self.nbsock.send_cmd(self, u'putBufferNumber', quote(self.pathname))
             self.nbsock.send_cmd(self, u'stopDocumentListen')
             self.registered = True
 
-    def getname(self):
+    def get_pathname(self):
         """Buffer full path name."""
-        return self.__name
-    name = property(getname, None, None, getname.__doc__)
+        return self.__pathname
+    pathname = property(get_pathname, None, None, get_pathname.__doc__)
+
+    def get_basename(self):
+        """Return the basename of the buffer pathname."""
+        return os.path.basename(self.pathname)
+
+    def __str__(self):
+        """Return the string representation of the buffer."""
+        return '%s:%s:%s' % (self.get_basename(), self.lnum, self.col)
+
+    __repr__ = __str__
 
 class BufferSet(dict):
     """The Vim buffer set is a dictionary of {pathname: Buffer instance}.
@@ -517,7 +541,7 @@ class BufferSet(dict):
         self.nbsock = nbsock
         self.buf_list = []
 
-    def getbuf(self, buf_id):
+    def getbuf_at(self, buf_id):
         """Return the Buffer at idx in list."""
         assert isinstance(buf_id, int)
         if buf_id <= 0 or buf_id > len(self.buf_list):

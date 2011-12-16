@@ -23,7 +23,7 @@ import java.nio.channels.SocketChannel;
  * A Timer registered with a Selector.
  *
  * This is an abstract class. You must derive from this class, and implement
- * the handleTick method.
+ * the handle_tick method.
  */
 abstract class Timer extends Dispatcher {
 
@@ -42,9 +42,9 @@ abstract class Timer extends Dispatcher {
         this.createSocket(false);
     }
 
-    void handleRead() {}
-    void handleWrite() {}
-    void handleAccept(SocketChannel channel) {}
-    void handleConnect() {}
+    void handle_read() {}
+    void handle_write() {}
+    void handle_accept(SocketChannel channel) {}
+    void handle_connect() {}
 
 }

@@ -38,16 +38,16 @@ public interface NetbeansClientType {
     /**
      * Process a <code>fileOpened</code> Netbeans event.
      *
-     * @param pathname full pathname of the file
+     * @param buf the Buffer instance
      */
-    public void event_fileOpened(String pathname);
+    public void event_fileOpened(Buffer buf);
 
     /**
      * Process a <code>killed</code> Netbeans event.
      *
-     * @param pathname full pathname of the file
+     * @param buf the Buffer instance
      */
-    public void event_killed(String pathname);
+    public void event_killed(Buffer buf);
 
     /**
      * Process a timer event.
@@ -72,10 +72,7 @@ public interface NetbeansClientType {
      *
      * @param keyName  the first parameter of Vim <code>:nbkey</code> command
      * @param args     the remaining string in the <code>:nbkey</code> command
-     * @param pathname the full pathname of the file
-     * @param lnum     the cursor line number
-     * @param col      the cursor column number
+     * @param buf      the Buffer instance
      */
-    public void default_cmd_processing(String keyName, String args, String pathname, int lnum, int col);
-
+    public void default_cmd_processing(String keyName, String args, Buffer buf);
 }

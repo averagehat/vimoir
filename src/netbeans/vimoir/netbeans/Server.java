@@ -54,13 +54,13 @@ class Server extends Dispatcher {
         this.listen();
     }
 
-    void handleRead() {}
+    void handle_read() {}
 
-    void handleWrite() {}
+    void handle_write() {}
 
-    void handleTick() {}
+    void handle_tick() {}
 
-    void handleAccept(SocketChannel channel) {
+    void handle_accept(SocketChannel channel) {
         logger.info(this.toString());
         this.conn.selector = this.selector;
         this.conn.setSocketChannel(channel);
@@ -68,5 +68,5 @@ class Server extends Dispatcher {
         this.close();
     }
 
-    void handleConnect() {}
+    void handle_connect() {}
 }

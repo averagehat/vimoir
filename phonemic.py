@@ -16,7 +16,7 @@ import sys
 import os
 from logging import error, info, debug
 
-import netbeans
+from netbeans import NetbeansClient
 
 def get_speech():
     """Return None when run by python or phonemic.jar cannot be found."""
@@ -37,13 +37,6 @@ def get_speech():
         speech = TextToSpeechFactory.getDefaultTextToSpeech()
         return speech
     sys.exit(1)
-
-class NetbeansClient(object):
-    def __init__(self):
-        self.nbsock = netbeans.Netbeans(sys.argv[1:2] == ['--debug'])
-
-    def start(self):
-        self.nbsock.start(self)
 
 class Phonemic(NetbeansClient):
     def __init__(self, speech):
@@ -70,11 +63,11 @@ class Phonemic(NetbeansClient):
     def event_disconnect(self):
         self.speak_admin_msg('Phonemic is disconnected from Vim')
 
-    def event_fileOpened(self, pathname):
-        self.speak_admin_msg('Opening the file %s' % os.path.basename(pathname))
+    def event_fileOpened(self, buf):
+        self.speak_admin_msg('Opening the file %s' % buf.get_basename())
 
-    def event_killed(self, pathname):
-        self.speak_admin_msg('Closing the file %s' % os.path.basename(pathname))
+    def event_killed(self, buf):
+        self.speak_admin_msg('Closing the file %s' % buf.get_basename())
 
     def event_tick(self):
         pass
@@ -86,11 +79,11 @@ class Phonemic(NetbeansClient):
     #   Commands
     #-----------------------------------------------------------------------
 
-    def default_cmd_processing(self, cmd, args, bufname, lnum, col):
+    def default_cmd_processing(self, cmd, args, buf):
         """Handle nbkey commands not matched with a 'cmd_xxx' method."""
-        info('nbkey: %s', (cmd, args, bufname, lnum, col))
+        info('nbkey: %s', (cmd, args, buf))
 
-    def cmd_speak(self, args, buf, lnum, col):
+    def cmd_speak(self, args, buf):
         self.speak(args)
 
 def main():

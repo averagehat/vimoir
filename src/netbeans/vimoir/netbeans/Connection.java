@@ -23,7 +23,7 @@ import java.nio.channels.SocketChannel;
  * Handle an outgoing or incoming Asynchat connection.
  *
  * This is an abstract class. You must derive from this class, and implement
- * foundTerminator().
+ * found_terminator().
  *
  */
 abstract class Connection extends Asynchat {
@@ -71,7 +71,7 @@ abstract class Connection extends Asynchat {
             this.setChannel(channel);
         } catch (java.io.IOException e) {
             logger.severe(e.toString());
-            this.handleClose();
+            this.handle_close();
             return;
         }
         this.state.connected();
@@ -87,20 +87,20 @@ abstract class Connection extends Asynchat {
         return str;
     }
 
-    void handleAccept(SocketChannel channel) {}
+    void handle_accept(SocketChannel channel) {}
 
-    void handleTick() {}
+    void handle_tick() {}
 
-    void handleConnect() {
+    void handle_connect() {
         logger.info("connected: " + this.toString());
     }
 
-    void handleClose() {
+    void handle_close() {
         logger.info("disconnecting: " + this.toString());
-        super.handleClose();
+        super.handle_close();
     }
 
-    void collectIncomingData(String str) {
+    void collect_incoming_data(String str) {
         this.ibuff.append(str);
     }
 }

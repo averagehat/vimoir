@@ -27,4 +27,9 @@ listening on a connection from Vim and to process the netbeans protocol.
 a netbeans event, this task should be run in its own worker thread, so as not
 to block other I/O operations.
 
+<p> A {@link vimoir.netbeans.Buffer} instance is registered to Netbeans on a
+<code>fileOpened</code> event.  To edit a buffer from the application, use the
+{@link vimoir.netbeans.NetbeansClient#get_buffer} method and register the
+Buffer instance with its {@link vimoir.netbeans.Buffer#register} method.
+
 </body>

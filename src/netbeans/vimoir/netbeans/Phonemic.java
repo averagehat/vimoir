@@ -16,13 +16,15 @@
 
 package vimoir.netbeans;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Logger;
 import java.util.logging.LogManager;
 import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;
+import vimoir.netbeans.NetbeansClient;
+import vimoir.netbeans.NetbeansClientType;
+import vimoir.netbeans.Buffer;
 
 /**
  * A class using <a
@@ -85,12 +87,12 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         this.speak_admin_msg("Phonemic is disconnected from Vim");
     }
 
-    public void event_fileOpened(String pathname) {
-        this.speak_admin_msg("Opening the file " + new File(pathname).getName());
+    public void event_fileOpened(Buffer buf) {
+        this.speak_admin_msg("Opening the file " + buf.get_basename());
     }
 
-    public void event_killed(String pathname) {
-        this.speak_admin_msg("Closing the file " + new File(pathname).getName());
+    public void event_killed(Buffer buf) {
+        this.speak_admin_msg("Closing the file " + buf.get_basename());
     }
 
     public void event_error(String msg) {
@@ -104,9 +106,8 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
      *
      * <p> Here we just log the event.
      */
-    public void default_cmd_processing(String keyName, String args, String pathname, int lnum, int col) {
-        logger.info("nbkey [" + keyName + ":" + args + ":" 
-                    + new File(pathname).getName() + ":" + lnum + ":" + col + "]");
+    public void default_cmd_processing(String keyName, String args, Buffer buf) {
+        logger.info("nbkey [" + keyName + ":" + args + ":" + buf.toString() + "]");
     }
 
     /**
@@ -114,11 +115,9 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
      * blahblahblah</code> Vim command.
      *
      * @param args     the remaining string in the <code>:nbkey</code> command
-     * @param pathname the full pathname of the file
-     * @param lnum     the cursor line number
-     * @param col      the cursor column number
+     * @param buf      the Buffer instance
      */
-    public void cmd_speak(String args, String pathname, int lnum, int col) {
+    public void cmd_speak(String args, Buffer buf) {
         this.speak(args);
     }
 
