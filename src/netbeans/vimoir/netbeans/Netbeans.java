@@ -18,6 +18,7 @@ package vimoir.netbeans;
 
 import java.net.URL;
 import java.io.File;
+import java.io.InputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Properties;
@@ -35,12 +36,13 @@ class Netbeans extends Connection implements NetbeansType {
     private static Pattern re_lnumcol;
     private static Pattern re_escape;
     private static Pattern re_unescape;
+    Server server;
+    Properties props;
     NetbeansClientType client = null;
     BufferSet bset;
     boolean ready = false;
     int seqno = 0;
     int last_seqno = 0;
-    String password;
 
     static {
         re_auth = Pattern.compile("^\\s*AUTH\\s*(\\S+)\\s*$");
@@ -51,37 +53,28 @@ class Netbeans extends Connection implements NetbeansType {
         re_unescape = Pattern.compile("\\\\[\"ntr\\\\]");
     }
 
-    Netbeans() throws IOException {
+    Netbeans(Server server, Properties props) throws IOException {
         super();
+        this.server = server;
+        this.props = props;
         this.bset = new BufferSet(this);
         this.setTerminator("\n");
-
-        Properties props = new Properties();
-        URL url = ClassLoader.getSystemResource("vimoir.properties");
-        if (url != null)
-            props.load(url.openStream());
-        this.password = props.getProperty("vimoir.netbeans.password", "changeme");
 
         // set the encoding
         Charset charset = Charset.forName(
                 props.getProperty("vimoir.netbeans.encoding", "UTF-8"));
         this.encoder = charset.newEncoder();
         this.decoder = charset.newDecoder();
-
-        String host = props.getProperty("vimoir.netbeans.host", "");
-        if (host == "") host = null;
-        try {
-            new Server(this, host, Integer.parseInt(props.getProperty(
-                                            "vimoir.netbeans.port", "3219")));
-        } catch (java.net.SocketException e) {
-            logger.severe(e.toString());
-            System.exit(1);
-        }
     }
 
-    public void start(NetbeansClientType client) throws IOException {
+    void set_client(NetbeansClientType client) {
         this.client = client;
-        Dispatcher.loop();
+    }
+
+    /** Terminate the server. */
+    public void terminate_server() {
+        logger.info("terminating the server");
+        this.server.close();
     }
 
     /** Process new line terminated netbeans message. */
@@ -130,7 +123,8 @@ class Netbeans extends Connection implements NetbeansType {
         Matcher matcher = re_auth.matcher(msg);
         if(matcher.matches()) {
             String password = matcher.group(1);
-            if (! this.password.equals(password))
+            String expected = this.props.getProperty("vimoir.netbeans.password", "changeme");
+            if (! expected.equals(password))
                 throw new NetbeansException("invalid password: " + password);
             return;
         // '0:version=0 "2.3"'
@@ -252,7 +246,7 @@ class Netbeans extends Connection implements NetbeansType {
         this.send_cmd(buf, cmd, "");
     }
 
-    void send_cmd(Buffer buf, String cmd, String args) {
+    public void send_cmd(Buffer buf, String cmd, String args) {
         this.send_request("{0}:{1}!{2}{3}{4}", buf, cmd, args);
     }
 
@@ -267,7 +261,7 @@ class Netbeans extends Connection implements NetbeansType {
     }
 
     /** Send a netbeans function or command. */
-    public void send_request(String fmt, Buffer buf, String request, String args) {
+    void send_request(String fmt, Buffer buf, String request, String args) {
         this.seqno += 1;
         int buf_id = 0;
         if (buf != null)
@@ -277,8 +271,13 @@ class Netbeans extends Connection implements NetbeansType {
             space = "";
         Object[] prm = {new Long(buf_id), request, new Long(this.seqno), space, args};
         String msg = MessageFormat.format(fmt, prm);
-        this.send(msg + '\n');
-        logger.finest(msg);
+
+        if (this.state.is_connected()) {
+            this.send(msg + '\n');
+            logger.finest(msg);
+        }
+        else
+            logger.info("failed to send_request: not connected");
     }
 
     /** Escape special characters in string.*/
@@ -293,7 +292,7 @@ class Netbeans extends Connection implements NetbeansType {
     }
 
     /** Quote 'msg' and escape special characters. */
-    static String quote(String text) {
+    public String quote(String text) {
         String result = "";
         int i = 0;
         Matcher matcher = re_escape.matcher(text);
@@ -337,6 +336,36 @@ class Netbeans extends Connection implements NetbeansType {
         }
         result += text.substring(i);
         return result;
+    }
+
+    /**
+     * Start the Netbeans engine.
+     *
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) throws IOException {
+        Properties props = new Properties();
+        URL url = ClassLoader.getSystemResource("vimoir.properties");
+        if (url != null) {
+            InputStream f = url.openStream();
+            props.load(f);
+            f.close();
+        }
+
+        String host = props.getProperty("vimoir.netbeans.host", "");
+        if (host == "")
+            host = null;
+        new Server(host, Integer.parseInt(props.getProperty(
+                                    "vimoir.netbeans.port", "3219")));
+        long user_interval = Long.parseLong(props.getProperty(
+                                    "vimoir.netbeans.user_interval", "200"));
+        long timeout = Long.parseLong(props.getProperty(
+                                    "vimoir.netbeans.timeout", "20"));
+        Dispatcher.loop(user_interval, timeout);
+
+        // Terminate all Phonemic threads by exiting.
+        logger.info("Terminated.");
+        System.exit(0);
     }
 
     /** Parse a received netbeans message. */

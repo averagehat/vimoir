@@ -16,6 +16,7 @@
 
 package vimoir.netbeans;
 
+import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
@@ -30,15 +31,15 @@ abstract class Connection extends Asynchat {
     static final int BUFFER_SIZE = 1024;
     StringBuffer ibuff = new StringBuffer(BUFFER_SIZE);
 
-    Connection() throws java.io.IOException {
+    Connection() throws IOException {
         super();
     }
 
-    Connection(Selector selector) throws java.io.IOException {
+    Connection(Selector selector) throws IOException {
         super(selector);
     }
 
-    Connection(String host, int port) throws java.io.IOException {
+    Connection(String host, int port) throws IOException {
         super();
         this.createSocket(false);
         this.connect(host, port);
@@ -53,7 +54,7 @@ abstract class Connection extends Asynchat {
      * @param port      port number
      */
     Connection(Selector selector,
-                    String host, int port) throws java.io.IOException {
+                    String host, int port) throws IOException {
         super(selector);
         this.createSocket(false);
         this.connect(host, port);
@@ -69,7 +70,7 @@ abstract class Connection extends Asynchat {
         assert channel != null :  "null channel";
         try {
             this.setChannel(channel);
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.severe(e.toString());
             this.handle_close();
             return;
@@ -87,7 +88,7 @@ abstract class Connection extends Asynchat {
         return str;
     }
 
-    void handle_accept(SocketChannel channel) {}
+    void handle_accept(SocketChannel channel) throws IOException {}
 
     void handle_tick() {}
 

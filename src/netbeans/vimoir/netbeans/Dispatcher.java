@@ -22,8 +22,6 @@ import java.util.logging.Logger;
 import java.net.ServerSocket;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.net.URL;
-import java.util.Properties;
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectableChannel;
@@ -132,7 +130,7 @@ abstract class Dispatcher {
      *
      * @param channel of the incoming connection request
      */
-    abstract void handle_accept(SocketChannel channel);
+    abstract void handle_accept(SocketChannel channel) throws IOException;
 
     /**
      * This method is invoked when readyToConnect() is true, the channel is
@@ -337,7 +335,7 @@ abstract class Dispatcher {
         this.handle_write();
     }
 
-    void handle_accept_event() {
+    void handle_accept_event() throws IOException {
         SocketChannel channel = null;
         try {
             channel = this.getServerSocketChannel().accept();
@@ -379,18 +377,7 @@ abstract class Dispatcher {
             return this.channel.toString();
     }
 
-    static void loop() {
-        Properties props;
-        props = new Properties();
-        URL url = ClassLoader.getSystemResource("vimoir.properties");
-        try {
-            if (url != null) props.load(url.openStream());
-        } catch (IOException e) {}
-        loop(Long.parseLong(props.getProperty(
-                            "vimoir.netbeans.user_interval", "200")));
-    }
-
-    static void loop(long user_interval) {
+    static void loop(long user_interval, long timeout) throws IOException {
         try {
             if (default_selector == null)
                 default_selector = Selector.open();
@@ -398,7 +385,7 @@ abstract class Dispatcher {
             logger.severe(e.toString());
             return;
         }
-        loop(default_selector, user_interval);
+        loop(default_selector, user_interval, timeout);
     }
 
     /**
@@ -410,19 +397,10 @@ abstract class Dispatcher {
      *
      * @param selector      Selector used for this loop
      * @param user_interval the timer events period in milliseconds
+     * @param timeout       the select() call timeout
      */
-    static void loop(Selector selector, long user_interval) {
+    static void loop(Selector selector, long user_interval, long timeout) throws IOException {
         assert selector != null :  "null selector";
-
-        Properties props;
-        props = new Properties();
-        URL url = ClassLoader.getSystemResource("vimoir.properties");
-        try {
-            if (url != null) props.load(url.openStream());
-        } catch (IOException e) {}
-        long timeout = Long.parseLong(props.getProperty(
-                                    "vimoir.netbeans.timeout", "20"));
-
         int bugCount = 0;
         boolean handleJavaFourSelectBug = isJavaFour();
         if (handleJavaFourSelectBug)
@@ -547,6 +525,7 @@ class ConnectionState {
 
     boolean acceptable() { return (this.state == ACCEPTING); }
     boolean connectable() { return (this.state == CONNECTING); }
+    boolean is_connected() { return (this.state == CONNECTED); }
     boolean readable() { return (this.state == CONNECTED); }
     boolean writable() { return (this.state == CONNECTED); }
     boolean closed() { return (this.state == CLOSING); }

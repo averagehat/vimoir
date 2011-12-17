@@ -3,12 +3,12 @@ Vimoir is a library that can be used to build Netbeans applications for Vim
 and that includes an example allowing to hear Vim.
 
 <p> Use the vimoir library to interface a java or a python application with Vim
-through the Netbeans protocol.  The application implements the vimoir {@link
-vimoir.netbeans.NetbeansClientType} interface which maps Vim netbeans events to
-methods.  The vimoir library takes care of the details of the protocol such as
-registering buffers with a <i>bufID</i>, managing <i>seqno</i> command sequence
-numbers, quoting or unquoting strings, and managing the netbeans socket
-connection.
+through the Netbeans protocol. The client application implements the vimoir
+{@link vimoir.netbeans.NetbeansClientType} interface which maps Vim Netbeans
+events to methods. The vimoir library takes care of the details of the protocol
+such as registering buffers with a <i>bufID</i>, managing <i>seqno</i> command
+sequence numbers, instantiating the client class on each new connection request
+from Vim and managing the corresponding Netbeans socket connection.
 
 <p> The vimoir library includes the {@link vimoir.netbeans.Phonemic} client as
 an example of a NetbeansClientType. The Phonemic client uses the <a
@@ -16,20 +16,26 @@ href="http://sourceforge.net/projects/phonemic/">phonemic</a> java library to
 make Vim speak the content of buffers or speak operational messages such as
 Netbeans events.
 
-<p> To develop a client such as Phonemic, one must implement a class that
-extends the abstract {@link vimoir.netbeans.NetbeansClient} class and that
-implements the NetbeansClientType interface. Then it is only necessary to
-instantiate this new class and to invoke its start method, in order to start
-listening on a connection from Vim and to process the netbeans protocol.
+<p> To develop a client such as Phonemic, one must implement a class whose
+constructor accepts a Netbeans engine object which is an instance of the {@link
+vimoir.netbeans.NetbeansType} interface. The Netbeans engine provides the
+methods to send Netbeans commands and functions. The Netbeans engine
+instantiates the client class on each new socket connection, the client class
+name is the value of the <code>vimoir.netbeans.java.client</code> property. The
+client class must also implement the NetbeansClientType interface where are
+defined the methods used to process Netbeans events.
+
+<p> A {@link vimoir.netbeans.Buffer} instance is registered to Netbeans by the
+Netbeans engine on a the first <code>fileOpened</code> event for this buffer.
+When the client application needs to open a new buffer for which there has been
+no <code>fileOpened</code> event, a call to the {@link
+vimoir.netbeans.NetbeansType#get_buffer} method returns a Buffer object, this
+object must then be registered to Netbeans with its {@link
+vimoir.netbeans.Buffer#register} method.
 
 <p>The library runs in a single thread of execution. When a time consuming task
 (such as opening a database for example) must be undertaken on the occurence of
-a netbeans event, this task should be run in its own worker thread, so as not
+a Netbeans event, this task should be run in its own worker thread, so as not
 to block other I/O operations.
-
-<p> A {@link vimoir.netbeans.Buffer} instance is registered to Netbeans on a
-<code>fileOpened</code> event.  To edit a buffer from the application, use the
-{@link vimoir.netbeans.NetbeansClient#get_buffer} method and register the
-Buffer instance with its {@link vimoir.netbeans.Buffer#register} method.
 
 </body>

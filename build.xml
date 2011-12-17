@@ -30,7 +30,6 @@
             description="Setup with jython">
         <filelist id="projects" dir="src">
             <file name="netbeans/build.xml"/>
-            <file name="jynetbeans/build.xml"/>
         </filelist>
     </target>
 
@@ -44,8 +43,7 @@
                 <fileset dir="${phonemic.dir}" includes="*.jar"/>
                 <fileset dir="lib" includes="*.jar"/>
             </classpath>
-            <fileset dir="${netbeans.doc.dir}" includes="*Exception.java"/>
-            <fileset dir="${netbeans.doc.dir}" includes="NetbeansClient*"/>
+            <fileset dir="${netbeans.doc.dir}" includes="Netbeans*" excludes="Netbeans.java"/>
             <fileset dir="${netbeans.doc.dir}" includes="Phonemic.java"/>
             <fileset dir="${netbeans.doc.dir}" includes="Buffer.java"/>
         </javadoc>

@@ -24,14 +24,10 @@ import logging
 import ConfigParser
 from logging import error, info, debug
 
-try:
-    from vimoir.netbeans import NetbeansType
-except ImportError:
-    NetbeansType = object
-
 PROPERTIES_PATHNAME = os.path.join('conf', 'vimoir.properties')
 SECTION_NAME = 'vimoir properties'
 DEFAULTS = {
+    'vimoir.netbeans.python.client': 'phonemic.Phonemic',
     'vimoir.netbeans.host': '',
     'vimoir.netbeans.port': '3219',
     'vimoir.netbeans.password': 'changeme',
@@ -161,6 +157,19 @@ def setup_logger(debug):
         level = logging.DEBUG
     root.setLevel(level)
 
+def load_properties():
+    """Load configuration properties."""
+    opts = RawConfigParser(DEFAULTS)
+    try:
+        f = FileLike(PROPERTIES_PATHNAME)
+        opts.readfp(f)
+        f.close()
+    except IOError:
+        opts.add_section(SECTION_NAME)
+    except ConfigParser.ParsingError, e:
+        error(e)
+    return opts
+
 class RawConfigParser(ConfigParser.RawConfigParser):
     """A RawConfigParser subclass with a getter and no section parameter."""
     def get(self, option):
@@ -177,6 +186,10 @@ class FileLike(object):
             self.f = open(self.name)
             return '[%s]\n' % SECTION_NAME
         return self.f.readline()
+
+    def close(self):
+        if self.f:
+            self.f.close()
 
 class StderrHandler(logging.StreamHandler):
     """Stderr logging handler."""
@@ -211,16 +224,6 @@ class StderrHandler(logging.StreamHandler):
 class Error(Exception):
     """Base class for exceptions."""
 
-class NetbeansClient(object):
-    def __init__(self):
-        self.nbsock = Netbeans(sys.argv[1:2] == ['--debug'])
-
-    def start(self):
-        self.nbsock.start(self)
-
-    def get_buffer(pathname):
-        return self.nbsock.get_buffer(pathname)
-
 class Reply(object):
     """Abstract class. A Reply instance is a callable used to process
     the result of a  function call in the reply received from netbeans.
@@ -244,9 +247,9 @@ class Reply(object):
         pass
 
 class Server(asyncore.dispatcher):
-    def __init__(self, nbsock, host, port):
+    def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
-        self.nbsock = nbsock
+        self.nbsock = None
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind_listen(host, port)
 
@@ -259,18 +262,38 @@ class Server(asyncore.dispatcher):
     def handle_accept(self):
         """Accept the connection from Vim."""
         conn, addr = self.socket.accept()
+        if self.nbsock and self.nbsock.connected:
+            conn.close()
+            info('rejecting connection from %s: netbeans already connected',
+                                                                    addr)
+            return
+
+        # get the class to instantiate
+        opts = load_properties()
+        name = opts.get('vimoir.netbeans.python.client')
+        idx = name.rfind('.')
+        if idx == -1:
+            stmt = "import %s as clazz" % name
+        else:
+            stmt = "from %s import %s as clazz" % (name[:idx], name[idx+1:])
+        exec stmt
+
+        self.nbsock = Netbeans(self, opts)
+        client = clazz(self.nbsock)
+        self.nbsock.set_client(client)
         conn.setblocking(0)
         self.nbsock.set_socket(conn)
         self.nbsock.connected = True
-        self.close()
-        info('connected to %s', addr)
+        info('%s connected to %s', clazz.__name__, addr)
 
     def handle_tick(self):
         pass
 
-class Netbeans(asynchat.async_chat, NetbeansType):
-    def __init__(self, debug):
+class Netbeans(asynchat.async_chat):
+    def __init__(self, server, opts):
         asynchat.async_chat.__init__(self)
+        self.server = server
+        self.opts = opts
         self.client = None
         self.set_terminator(u'\n')
         self.ibuff = []
@@ -279,33 +302,21 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         self._bset = BufferSet(self)
         self.seqno = 0
         self.last_seqno = 0
-        setup_logger(debug)
-        self.opts = RawConfigParser(DEFAULTS)
-        try:
-            self.opts.readfp(FileLike(PROPERTIES_PATHNAME))
-        except IOError:
-            self.opts.add_section(SECTION_NAME)
-        except ConfigParser.ParsingError, e:
-            error(e)
-        self.encoding = self.opts.get('vimoir.netbeans.encoding')
-        Server(self, self.opts.get('vimoir.netbeans.host'),
-                        self.opts.get('vimoir.netbeans.port'))
+        self.encoding = opts.get('vimoir.netbeans.encoding')
 
-    def start(self, client):
+    def set_client(self, client):
         self.client = client
-        timeout = int(self.opts.get('vimoir.netbeans.timeout')) / 1000.0
-        user_interval = (int(self.opts.get('vimoir.netbeans.user_interval'))
-                                            / 1000.0)
-        last = time.time()
-        while asyncore.socket_map:
-            asyncore.poll(timeout=timeout)
 
-            # send the timer events
-            now = time.time()
-            if (now - last >= user_interval):
-                last = now
-                for obj in asyncore.socket_map.values():
-                    obj.handle_tick()
+    def terminate_server(self):
+        """Terminate the server."""
+        info("terminating the server")
+        self.server.close()
+
+    def close(self):
+        if not self.connected:
+            return
+        asynchat.async_chat.close(self)
+        self.connected = False
 
     def collect_incoming_data(self, data):
         self.ibuff.append(unicode(data, self.encoding))
@@ -468,8 +479,11 @@ class Netbeans(asynchat.async_chat, NetbeansType):
         if not args:
             space = u''
         msg = fmt % (buf_id, request, self.seqno, space, args)
-        self.push(msg.encode(self.encoding))
-        debug(msg.strip(u'\n'))
+        if self.connected:
+            self.push(msg.encode(self.encoding))
+            debug(msg.strip(u'\n'))
+        else:
+            info('failed to send_request: not connected')
 
 class Buffer(object):
     """A Vim buffer.
@@ -594,4 +608,31 @@ class BufferSet(dict):
     def copy(self):
         """Not implemented."""
         assert False, 'not implemented'
+
+def main():
+    setup_logger(sys.argv[1:2] == ['--debug'])
+    opts = load_properties()
+    Server(opts.get('vimoir.netbeans.host'), opts.get('vimoir.netbeans.port'))
+    timeout = int(opts.get('vimoir.netbeans.timeout')) / 1000.0
+    user_interval = (int(opts.get('vimoir.netbeans.user_interval')) / 1000.0)
+    last = time.time()
+    while asyncore.socket_map:
+        asyncore.poll(timeout=timeout)
+
+        # send the timer events
+        now = time.time()
+        if (now - last >= user_interval):
+            last = now
+            for obj in asyncore.socket_map.values():
+                obj.handle_tick()
+
+    # Terminate all Phonemic threads by exiting.
+    sys.exit(0)
+
+if __name__ == "__main__":
+    if sys.version_info >= (3, 0):
+        sys.stderr.write("Python 3 is not supported.\n")
+        sys.exit(1)
+
+    main()
 

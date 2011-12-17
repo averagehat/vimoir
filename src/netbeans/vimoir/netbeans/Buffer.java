@@ -50,8 +50,8 @@ public class Buffer {
         // Register file with netbeans.
         if (! this.registered) {
             if (editFile)
-                this.nbsock.send_cmd(this, "editFile", Netbeans.quote(this.pathname));
-            this.nbsock.send_cmd(this, "putBufferNumber", Netbeans.quote(this.pathname));
+                this.nbsock.send_cmd(this, "editFile", this.nbsock.quote(this.pathname));
+            this.nbsock.send_cmd(this, "putBufferNumber", this.nbsock.quote(this.pathname));
             this.nbsock.send_cmd(this, "stopDocumentListen");
             this.registered = true;
         }

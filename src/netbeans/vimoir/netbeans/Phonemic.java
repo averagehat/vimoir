@@ -16,37 +16,33 @@
 
 package vimoir.netbeans;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.logging.Logger;
-import java.util.logging.LogManager;
-import org.sodbeans.phonemic.TextToSpeechFactory;
-import org.sodbeans.phonemic.tts.TextToSpeech;
-import vimoir.netbeans.NetbeansClient;
+import vimoir.netbeans.Netbeans;
 import vimoir.netbeans.NetbeansClientType;
 import vimoir.netbeans.Buffer;
+import org.sodbeans.phonemic.TextToSpeechFactory;
+import org.sodbeans.phonemic.tts.TextToSpeech;
 
 /**
  * A class using <a
  * href="http://sourceforge.net/projects/phonemic/">phonemic</a> to speak
  * audibly Vim buffers content.
  */
-public class Phonemic extends NetbeansClient implements NetbeansClientType {
+public class Phonemic implements NetbeansClientType {
     static Logger logger = Logger.getLogger("vimoir.netbeans");
     /** The type of speech is Object and not TextToSpeech to allow for running
      * without phonemic.jar installed. */
-    public Object speech;
-
-    public Phonemic() throws IOException {}
+    Object speech;
+    Netbeans nbsock;
 
     /**
-     * The constructor <b>MUST</b> invoke the superclass constructor.
+     * The constructor.
      *
-     * @param speech the phonemic TextToSpeech instance or <code>null</code>
+     * @param nbsock the Netbeans engine
      */
-    public Phonemic(Object speech) throws IOException {
-        super();
-        this.speech = speech;
+    public Phonemic(Netbeans nbsock) {
+        this.nbsock = nbsock;
+        this.speech = get_speech();
     }
 
     /**
@@ -121,6 +117,11 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
         this.speak(args);
     }
 
+    /** Terminate the server. */
+    public void cmd_quit(String args, Buffer buf) {
+        this.nbsock.terminate_server();
+    }
+
     /**
      * Return a phonemic TextToSpeech object.
      *
@@ -134,21 +135,6 @@ public class Phonemic extends NetbeansClient implements NetbeansClientType {
             logger.severe("cannot find phonemic.jar: " + ex);
         }
         return speech;
-    }
-
-    /**
-     * Run a Phonemic instance.
-     *
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) throws IOException {
-        // Start netbeans processing.
-        Phonemic phonemic = new Phonemic(get_speech());
-        phonemic.start();
-
-        // Terminate all Phonemic threads by exiting.
-        logger.info("Terminated.");
-        System.exit(0);
     }
 }
 

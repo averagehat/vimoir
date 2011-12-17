@@ -16,23 +16,34 @@
 
 package vimoir.netbeans;
 
-/**
- * Interface implemented by Netbeans engines.
- *
- * <p> There is a java Netbeans engine and a jython Netbeans engine which is
- * implemented by the <code>vimoir.jynetbeans</code> package.
- */
+/** Interface implemented by the Netbeans engine. */
 public interface NetbeansType {
-    /**
-     * Start listening on the Netbeans port and process the Netbeans protocol.
-     *
-     * @param client object implementing the Netbeans application
-     */
-    public void start(NetbeansClientType client) throws java.io.IOException;
 
-    /** Return the Buffer instance associated with this pathname. */
+    /** Terminate the server. */
+    public void terminate_server();
+
+    /**
+     * Return the Buffer instance associated with this pathname.
+     *
+     * @param pathname the full pathname of this buffer
+     */
     public Buffer get_buffer(String pathname) throws NetbeansException;
 
-    /** Send a netbeans function or command. */
-    public void send_request(String fmt, Buffer buf, String request, String args);
+    /**
+     * Quote a string and escape special characters.
+     *
+     * @param text the string to quote
+     * @return the quoted string where special characters have been escaped
+     */
+    public String quote(String text);
+
+    /**
+     * Send a netbeans command.
+     *
+     * @param buf   null when the bufID is zero
+     * @param cmd   the command name
+     * @param args  the command parameters, use the quote method to quote
+     *              a Netbeans <code>string</code> parameter
+     */
+    public void send_cmd(Buffer buf, String cmd, String args);
 }

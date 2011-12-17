@@ -16,6 +16,7 @@
 
 package vimoir.netbeans;
 
+import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -41,7 +42,7 @@ abstract class Asynchat extends Dispatcher {
     ByteBuffer inbuf;
     int termlen = 0;
 
-    Asynchat() throws java.io.IOException {
+    Asynchat() throws IOException {
         super();
         this.initAsynchat();
     }
@@ -51,7 +52,7 @@ abstract class Asynchat extends Dispatcher {
      *
      * @param selector  Selector used for this channel
      */
-    Asynchat(Selector selector) throws java.io.IOException {
+    Asynchat(Selector selector) throws IOException {
         super(selector);
         this.initAsynchat();
     }
@@ -90,7 +91,7 @@ abstract class Asynchat extends Dispatcher {
         return (this.state.writable() && this.outbuf.remaining() != 0);
     }
 
-    void initiateSend() throws java.io.IOException {
+    void initiateSend() throws IOException {
         super.send(this.outbuf);
     }
 
@@ -122,7 +123,7 @@ abstract class Asynchat extends Dispatcher {
             String str =  this.decoder.decode(this.inbuf).toString();
             this.inbuf.clear();
             return str;
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.severe(e.toString());
             this.handle_close();
             return "";
@@ -132,7 +133,7 @@ abstract class Asynchat extends Dispatcher {
     void handle_write() {
         try {
             this.initiateSend();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.severe(e.toString());
             this.handle_close();
         }

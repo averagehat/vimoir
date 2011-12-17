@@ -16,6 +16,7 @@
 
 package vimoir.netbeans;
 
+import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
@@ -27,24 +28,24 @@ import java.nio.channels.SocketChannel;
  */
 abstract class Timer extends Dispatcher {
 
-    Timer() throws java.io.IOException {
+    Timer() throws IOException {
         super();
         this.initTimer();
     }
 
-    Timer(Selector selector) throws java.io.IOException {
+    Timer(Selector selector) throws IOException {
         super(selector);
         this.initTimer();
     }
 
-    void initTimer() throws java.io.IOException {
+    void initTimer() throws IOException {
         // instantiate a fake SocketChannel to register the timer
         this.createSocket(false);
     }
 
     void handle_read() {}
     void handle_write() {}
-    void handle_accept(SocketChannel channel) {}
+    void handle_accept(SocketChannel channel) throws IOException {}
     void handle_connect() {}
 
 }

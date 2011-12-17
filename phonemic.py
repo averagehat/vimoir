@@ -16,8 +16,6 @@ import sys
 import os
 from logging import error, info, debug
 
-from netbeans import NetbeansClient
-
 def get_speech():
     """Return None when run by python or phonemic.jar cannot be found."""
     try:
@@ -38,10 +36,10 @@ def get_speech():
         return speech
     sys.exit(1)
 
-class Phonemic(NetbeansClient):
-    def __init__(self, speech):
-        NetbeansClient.__init__(self)
-        self.speech = speech
+class Phonemic(object):
+    def __init__(self, nbsock):
+        self.nbsock = nbsock
+        self.speech = get_speech()
 
     def speak(self, text):
         if self.speech:
@@ -86,16 +84,7 @@ class Phonemic(NetbeansClient):
     def cmd_speak(self, args, buf):
         self.speak(args)
 
-def main():
-    phonemic = Phonemic(get_speech())
-    phonemic.start()
-    # Terminate all Phonemic threads by exiting.
-    sys.exit(0)
-
-if __name__ == "__main__":
-    if sys.version_info >= (3, 0):
-        sys.stderr.write("Python 3 is not supported.\n")
-        sys.exit(1)
-
-    main()
+    def cmd_quit(self, args, buf):
+        """Terminate the server."""
+        self.nbsock.terminate_server()
 
