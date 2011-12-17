@@ -17,17 +17,17 @@
 package vimoir.netbeans;
 
 /** Interface implemented by the Netbeans engine. */
-public interface NetbeansType {
+public interface NetbeansEngine {
 
     /** Terminate the server. */
     public void terminate_server();
 
     /**
-     * Return the Buffer instance associated with this pathname.
+     * Return the buffer instance associated with this pathname.
      *
      * @param pathname the full pathname of this buffer
      */
-    public Buffer get_buffer(String pathname) throws NetbeansException;
+    public NetbeansBuffer get_buffer(String pathname) throws NetbeansInvalidPathnameException;
 
     /**
      * Quote a string and escape special characters.
@@ -45,5 +45,5 @@ public interface NetbeansType {
      * @param args  the command parameters, use the quote method to quote
      *              a Netbeans <code>string</code> parameter
      */
-    public void send_cmd(Buffer buf, String cmd, String args);
+    public void send_cmd(NetbeansBuffer buf, String cmd, String args);
 }

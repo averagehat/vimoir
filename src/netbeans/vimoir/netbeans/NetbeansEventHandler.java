@@ -19,7 +19,7 @@ package vimoir.netbeans;
 /**
  * The interface methods are call back methods that map to Netbeans events.
  */
-public interface NetbeansClientType {
+public interface NetbeansEventHandler {
 
     //-----------------------------------------------------------------------
     //   Events
@@ -38,16 +38,16 @@ public interface NetbeansClientType {
     /**
      * Process a <code>fileOpened</code> Netbeans event.
      *
-     * @param buf the Buffer instance
+     * @param buf the buffer instance
      */
-    public void event_fileOpened(Buffer buf);
+    public void event_fileOpened(NetbeansBuffer buf);
 
     /**
      * Process a <code>killed</code> Netbeans event.
      *
-     * @param buf the Buffer instance
+     * @param buf the buffer instance
      */
-    public void event_killed(Buffer buf);
+    public void event_killed(NetbeansBuffer buf);
 
     /**
      * Process a timer event.
@@ -66,13 +66,13 @@ public interface NetbeansClientType {
      * Netbeans event.
      *
      * <p>The Netbeans engine falls back to invoking this method when the
-     * NetbeansClientType object does not implement the
+     * NetbeansEventHandler object does not implement the
      * <code>cmd_keyName</code> method, <code>keyName</code> being the first
      * parameter of the Vim <code>:nbkey</code> command.
      *
      * @param keyName  the first parameter of Vim <code>:nbkey</code> command
      * @param args     the remaining string in the <code>:nbkey</code> command
-     * @param buf      the Buffer instance
+     * @param buf      the buffer instance
      */
-    public void default_cmd_processing(String keyName, String args, Buffer buf);
+    public void default_cmd_processing(String keyName, String args, NetbeansBuffer buf);
 }

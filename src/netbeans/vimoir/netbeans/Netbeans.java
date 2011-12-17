@@ -29,7 +29,7 @@ import java.util.regex.Matcher;
 import java.text.MessageFormat;
 import java.lang.reflect.Method;
 
-class Netbeans extends Connection implements NetbeansType {
+class Netbeans extends Connection implements NetbeansEngine {
     private static Pattern re_auth;
     private static Pattern re_event;
     private static Pattern re_response;
@@ -38,7 +38,7 @@ class Netbeans extends Connection implements NetbeansType {
     private static Pattern re_unescape;
     Server server;
     Properties props;
-    NetbeansClientType client = null;
+    NetbeansEventHandler client = null;
     BufferSet bset;
     boolean ready = false;
     int seqno = 0;
@@ -67,7 +67,7 @@ class Netbeans extends Connection implements NetbeansType {
         this.decoder = charset.newDecoder();
     }
 
-    void set_client(NetbeansClientType client) {
+    void set_client(NetbeansEventHandler client) {
         this.client = client;
     }
 
@@ -144,7 +144,7 @@ class Netbeans extends Connection implements NetbeansType {
         throw new NetbeansException("received unexpected message: '" + msg + "'");
     }
 
-    public Buffer get_buffer(String pathname) throws NetbeansException {
+    public NetbeansBuffer get_buffer(String pathname) throws NetbeansInvalidPathnameException {
         return this.bset.get(pathname);
     }
 
@@ -162,10 +162,10 @@ class Netbeans extends Connection implements NetbeansType {
     void evt_fileOpened(Parser parsed) {
         String pathname = parsed.nbstring;
         if (! pathname.equals("")) {
-            Buffer buf = null;
+            NetbeansBuffer buf = null;
             try {
                 buf = this.bset.get(pathname);
-            } catch (NetbeansException e) {
+            } catch (NetbeansInvalidPathnameException e) {
                 logger.severe("absolute pathname required, got: " + pathname);
                 return;
             }
@@ -186,7 +186,7 @@ class Netbeans extends Connection implements NetbeansType {
 
     /** Process a keyAtPos netbeans event. */
     void evt_keyAtPos(Parser parsed) {
-        Buffer buf = this.bset.getbuf_at(parsed.buf_id);
+        NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         if (buf == null)
             logger.severe("invalid bufId: " + parsed.buf_id + " in keyAtPos");
         else if (parsed.nbstring.equals(""))
@@ -224,7 +224,7 @@ class Netbeans extends Connection implements NetbeansType {
 
     /** A file was deleted or wiped out by the user. */
     void evt_killed(Parser parsed) {
-        Buffer buf = this.bset.getbuf_at(parsed.buf_id);
+        NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         if (buf == null)
             logger.severe("invalid bufId: '" + parsed.buf_id + "' in killed");
         else {
@@ -242,26 +242,26 @@ class Netbeans extends Connection implements NetbeansType {
     //-----------------------------------------------------------------------
 
     /** Send a command to Vim. */
-    void send_cmd(Buffer buf, String cmd) {
+    void send_cmd(NetbeansBuffer buf, String cmd) {
         this.send_cmd(buf, cmd, "");
     }
 
-    public void send_cmd(Buffer buf, String cmd, String args) {
+    public void send_cmd(NetbeansBuffer buf, String cmd, String args) {
         this.send_request("{0}:{1}!{2}{3}{4}", buf, cmd, args);
     }
 
     /** Send a function call to Vim. */
-    void send_function(Buffer buf, String function) {
+    void send_function(NetbeansBuffer buf, String function) {
         this.send_function(buf, function, "");
     }
 
-    void send_function(Buffer buf, String function, String args) {
+    void send_function(NetbeansBuffer buf, String function, String args) {
         // FIXME
         this.send_request("{0}:{1}/{2}{3}{4}", buf, function, args);
     }
 
     /** Send a netbeans function or command. */
-    void send_request(String fmt, Buffer buf, String request, String args) {
+    void send_request(String fmt, NetbeansBuffer buf, String request, String args) {
         this.seqno += 1;
         int buf_id = 0;
         if (buf != null)
@@ -392,10 +392,8 @@ class Netbeans extends Connection implements NetbeansType {
                     this.seqno = Integer.parseInt(matcher.group(1));
                     args = matcher.group(2);
                 }
-                else {
-                    logger.severe("discarding invalid netbeans message: " + msg);
-                    return;
-                }
+                else
+                    throw new NetbeansException("discarding invalid netbeans message: " + msg);
             }
 
             // a netbeans string
@@ -421,7 +419,7 @@ class Netbeans extends Connection implements NetbeansType {
     /**
      * A container for a list and map of buffers.
      *
-     * <p> A Buffer instance is never removed from BufferSet.
+     * <p> A NetbeansBuffer instance is never removed from BufferSet.
      */
     class BufferSet {
         Netbeans nbsock;
@@ -432,29 +430,30 @@ class Netbeans extends Connection implements NetbeansType {
             this.nbsock = nbsock;
         }
 
-        /** Return the Buffer at index buf_id in the list. */
-        Buffer getbuf_at(int buf_id) {
+        /** Return the buffer at index buf_id in the list. */
+        NetbeansBuffer getbuf_at(int buf_id) {
             if (buf_id <= 0 || buf_id > this.buf_list.size())
                 return null;
-            return (Buffer) this.buf_list.get(buf_id - 1);
+            return (NetbeansBuffer) this.buf_list.get(buf_id - 1);
         }
 
-        /** Get Buffer with pathname as key, instantiate one when not found. */
-        Buffer get(String pathname) throws NetbeansException {
+        /** Get the buffer with pathname as key, instantiate one when not found. */
+        NetbeansBuffer get(String pathname) throws NetbeansInvalidPathnameException {
             File f = new File(pathname);
             String path = f.getPath();
             String fullpath = f.getAbsolutePath();
             if (! fullpath.equals(path))
-                throw new NetbeansException("'" + path + "' is not an absolute"
+                throw new NetbeansInvalidPathnameException(
+                                    "'" + path + "' is not an absolute"
                                     + " path, do you mean '" + fullpath + "' ?");
 
             if (! this.dict.containsKey(pathname)) {
-                Buffer buf = new Buffer(pathname,
+                NetbeansBuffer buf = new NetbeansBuffer(pathname,
                                 this.buf_list.size() + 1, this.nbsock);
                 this.buf_list.add(buf);
                 this.dict.put(pathname, buf);
             }
-            return (Buffer) this.dict.get(pathname);
+            return (NetbeansBuffer) this.dict.get(pathname);
         }
     }
 }

@@ -4,6 +4,7 @@
     <property name="vimoir.version" value="0.1"/>
     <property name="dist.dir" location="dist"/>
     <property name="netbeans.doc.dir" location="src/netbeans/vimoir/netbeans"/>
+    <property name="examples.doc.dir" location="src/examples/vimoir/examples"/>
     <available property="readme.exists" file="README"/>
 
     <macrodef name="iterate">
@@ -11,6 +12,7 @@
         <sequential>
             <subant target="@{target}">
                 <filelist refid="projects"/>
+                <property name="jar.dir"    value="../../lib"/>
                 <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
             </subant>
         </sequential>
@@ -20,21 +22,11 @@
             description="Compile, build and distribute the jar files">
     </target>
 
-    <target name="nojython" description="Setup without jython">
+    <target name="init" description="Initialize subprojetcs">
         <filelist id="projects" dir="src">
             <file name="netbeans/build.xml"/>
+            <file name="examples/build.xml"/>
         </filelist>
-    </target>
-
-    <target name="jython"  if="jython.dir"
-            description="Setup with jython">
-        <filelist id="projects" dir="src">
-            <file name="netbeans/build.xml"/>
-        </filelist>
-    </target>
-
-    <target name="init" depends="nojython,jython"
-            description="Initialize subprojetcs">
     </target>
 
     <target name="doc" description="Build the documentation">
@@ -44,8 +36,7 @@
                 <fileset dir="lib" includes="*.jar"/>
             </classpath>
             <fileset dir="${netbeans.doc.dir}" includes="Netbeans*" excludes="Netbeans.java"/>
-            <fileset dir="${netbeans.doc.dir}" includes="Phonemic.java"/>
-            <fileset dir="${netbeans.doc.dir}" includes="Buffer.java"/>
+            <fileset dir="${examples.doc.dir}" includes="Phonemic.java"/>
         </javadoc>
     </target>
 
@@ -74,7 +65,7 @@
             <fileset dir="vimoir.wiki" includes="*.wiki"/>
         </copy>
         <copy todir="${tar.dir}">
-            <fileset dir="." includes="*.py,README,NEWS,LICENSE"/>
+            <fileset dir="." includes="**/*.py,README,NEWS,LICENSE"/>
         </copy>
         <exec executable="/bin/bash" os="Linux">
             <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh'"/>
@@ -88,7 +79,7 @@
     <target name="clean" description="clean up" >
         <delete>
             <fileset dir="." includes="*.class"/>
-            <fileset dir="." includes="*.pyc"/>
+            <fileset dir="src" includes="**/*.pyc"/>
         </delete>
         <delete dir="build"/>
         <delete dir="lib"/>

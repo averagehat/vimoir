@@ -27,7 +27,7 @@ from logging import error, info, debug
 PROPERTIES_PATHNAME = os.path.join('conf', 'vimoir.properties')
 SECTION_NAME = 'vimoir properties'
 DEFAULTS = {
-    'vimoir.netbeans.python.client': 'phonemic.Phonemic',
+    'vimoir.netbeans.python.client': 'src.examples.phonemic.Phonemic',
     'vimoir.netbeans.host': '',
     'vimoir.netbeans.port': '3219',
     'vimoir.netbeans.password': 'changeme',
@@ -229,7 +229,7 @@ class Reply(object):
     the result of a  function call in the reply received from netbeans.
 
     Instance attributes:
-        buf: Buffer
+        buf: NetbeansBuffer
             the buffer in use when the function is invoked
         seqno: int
             netbeans sequence number
@@ -474,7 +474,7 @@ class Netbeans(asynchat.async_chat):
         self.seqno += 1
         buf_id = 0
         space = u' '
-        if isinstance(buf, Buffer):
+        if isinstance(buf, NetbeansBuffer):
             buf_id = buf.buf_id
         if not args:
             space = u''
@@ -485,7 +485,7 @@ class Netbeans(asynchat.async_chat):
         else:
             info('failed to send_request: not connected')
 
-class Buffer(object):
+class NetbeansBuffer(object):
     """A Vim buffer.
 
     Instance attributes:
@@ -523,7 +523,7 @@ class Buffer(object):
             self.registered = True
 
     def get_pathname(self):
-        """Buffer full path name."""
+        """NetbeansBuffer full path name."""
         return self.__pathname
     pathname = property(get_pathname, None, None, get_pathname.__doc__)
 
@@ -538,15 +538,15 @@ class Buffer(object):
     __repr__ = __str__
 
 class BufferSet(dict):
-    """The Vim buffer set is a dictionary of {pathname: Buffer instance}.
+    """The Vim buffer set is a dictionary of {pathname: NetbeansBuffer instance}.
 
     Instance attributes:
         nbsock: netbeans.Netbeans
             the netbeans asynchat socket
         buf_list: python list
-            the list of Buffer instances indexed by netbeans 'bufID'
+            the list of NetbeansBuffer instances indexed by netbeans 'bufID'
 
-    A Buffer instance is never removed from BufferSet.
+    A NetbeansBuffer instance is never removed from BufferSet.
 
     """
 
@@ -556,7 +556,7 @@ class BufferSet(dict):
         self.buf_list = []
 
     def getbuf_at(self, buf_id):
-        """Return the Buffer at idx in list."""
+        """Return the buffer at idx in list."""
         assert isinstance(buf_id, int)
         if buf_id <= 0 or buf_id > len(self.buf_list):
             return None
@@ -566,7 +566,7 @@ class BufferSet(dict):
     #   Dictionary methods
     #-----------------------------------------------------------------------
     def __getitem__(self, pathname):
-        """Get Buffer with pathname as key, instantiate one when not found.
+        """Get NetbeansBuffer with pathname as key, instantiate one when not found.
 
         The pathname parameter must be an absolute path name.
 
@@ -576,7 +576,7 @@ class BufferSet(dict):
                 '"pathname" is not an absolute path: %s' % pathname)
         if not pathname in self:
             # Netbeans buffer numbers start at one.
-            buf = Buffer(pathname, len(self.buf_list) + 1, self.nbsock)
+            buf = NetbeansBuffer(pathname, len(self.buf_list) + 1, self.nbsock)
             self.buf_list.append(buf)
             dict.__setitem__(self, pathname, buf)
         return dict.__getitem__(self, pathname)

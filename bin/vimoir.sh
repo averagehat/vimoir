@@ -47,6 +47,7 @@ run()
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
+        jarfiles=$jarfiles:$pwd/lib/netbeans-examples.jar
         java -cp $jarfiles:conf                                     \
             -Djava.util.logging.config.file=conf/logging.properties \
             vimoir.netbeans.Netbeans

@@ -17,10 +17,10 @@
 package vimoir.netbeans;
 
 /**
- * The base class of all Netbeans exceptions.
+ * This exception is raised when a buffer pathname is invalid.
  */
-public class NetbeansException extends Exception {
-    public NetbeansException(String msg) {
+public class NetbeansInvalidPathnameException extends NetbeansException {
+    public NetbeansInvalidPathnameException(String msg) {
         super(msg);
     }
 }

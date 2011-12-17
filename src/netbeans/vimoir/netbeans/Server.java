@@ -77,15 +77,15 @@ class Server extends Dispatcher {
             props.load(f);
             f.close();
         }
-        String name = props.getProperty("vimoir.netbeans.java.client", "vimoir.netbeans.Phonemic");
+        String name = props.getProperty("vimoir.netbeans.java.client", "vimoir.examples.Phonemic");
         this.nbsock = new Netbeans(this, props);
-        NetbeansClientType client = null;
+        NetbeansEventHandler client = null;
         try {
             Class clazz = Class.forName(name);
-            Class[] types = { vimoir.netbeans.Netbeans.class };
+            Class[] types = { vimoir.netbeans.NetbeansEngine.class };
             Constructor constructor = clazz.getConstructor(types);
             Object[] params = { this.nbsock };
-            client = (NetbeansClientType) constructor.newInstance(params);
+            client = (NetbeansEventHandler) constructor.newInstance(params);
         } catch (Exception e) {
             logger.severe(e.toString());
             System.exit(1);

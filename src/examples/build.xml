@@ -1,0 +1,7 @@
+<project name="netbeans-examples">
+    <path id="jar-files">
+        <fileset dir="${jar.dir}" includes="*.jar"/>
+        <fileset dir="${phonemic.dir}" includes="*.jar"/>
+    </path>
+    <import file="../../common.xml"/>
+</project>

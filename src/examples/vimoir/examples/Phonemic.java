@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package vimoir.netbeans;
+package vimoir.examples;
 
 import java.util.logging.Logger;
-import vimoir.netbeans.Netbeans;
-import vimoir.netbeans.NetbeansClientType;
-import vimoir.netbeans.Buffer;
+import vimoir.netbeans.NetbeansEngine;
+import vimoir.netbeans.NetbeansEventHandler;
+import vimoir.netbeans.NetbeansBuffer;
 import org.sodbeans.phonemic.TextToSpeechFactory;
 import org.sodbeans.phonemic.tts.TextToSpeech;
 
@@ -28,19 +28,19 @@ import org.sodbeans.phonemic.tts.TextToSpeech;
  * href="http://sourceforge.net/projects/phonemic/">phonemic</a> to speak
  * audibly Vim buffers content.
  */
-public class Phonemic implements NetbeansClientType {
-    static Logger logger = Logger.getLogger("vimoir.netbeans");
+public class Phonemic implements NetbeansEventHandler {
+    static Logger logger = Logger.getLogger("vimoir.examples");
     /** The type of speech is Object and not TextToSpeech to allow for running
      * without phonemic.jar installed. */
     Object speech;
-    Netbeans nbsock;
+    NetbeansEngine nbsock;
 
     /**
      * The constructor.
      *
      * @param nbsock the Netbeans engine
      */
-    public Phonemic(Netbeans nbsock) {
+    public Phonemic(NetbeansEngine nbsock) {
         this.nbsock = nbsock;
         this.speech = get_speech();
     }
@@ -83,11 +83,11 @@ public class Phonemic implements NetbeansClientType {
         this.speak_admin_msg("Phonemic is disconnected from Vim");
     }
 
-    public void event_fileOpened(Buffer buf) {
+    public void event_fileOpened(NetbeansBuffer buf) {
         this.speak_admin_msg("Opening the file " + buf.get_basename());
     }
 
-    public void event_killed(Buffer buf) {
+    public void event_killed(NetbeansBuffer buf) {
         this.speak_admin_msg("Closing the file " + buf.get_basename());
     }
 
@@ -102,7 +102,7 @@ public class Phonemic implements NetbeansClientType {
      *
      * <p> Here we just log the event.
      */
-    public void default_cmd_processing(String keyName, String args, Buffer buf) {
+    public void default_cmd_processing(String keyName, String args, NetbeansBuffer buf) {
         logger.info("nbkey [" + keyName + ":" + args + ":" + buf.toString() + "]");
     }
 
@@ -111,14 +111,14 @@ public class Phonemic implements NetbeansClientType {
      * blahblahblah</code> Vim command.
      *
      * @param args     the remaining string in the <code>:nbkey</code> command
-     * @param buf      the Buffer instance
+     * @param buf      the buffer instance
      */
-    public void cmd_speak(String args, Buffer buf) {
+    public void cmd_speak(String args, NetbeansBuffer buf) {
         this.speak(args);
     }
 
     /** Terminate the server. */
-    public void cmd_quit(String args, Buffer buf) {
+    public void cmd_quit(String args, NetbeansBuffer buf) {
         this.nbsock.terminate_server();
     }
 

@@ -5,8 +5,8 @@
     <property name="classes.dir"    value="../../build/${project.name}"/>
 
     <target name="init">
-        <echo message="Project ${ant.project.name}"/>
-        <property name="filename" value="${project.name}"/>
+        <echo message="Project ${project.name}"/>
+        <property name="filename" value="${ant.project.name}"/>
     </target>
 
     <target name="compile" depends="init"
@@ -26,7 +26,7 @@
     </target>
 
     <target name="build" depends="compile" description="Build the jar files">
-        <echo message="Building ${ant.project.name}"/>
+        <echo message="Building ${project.name}"/>
         <jar jarfile="${jar.dir}/${filename}.jar" basedir="${classes.dir}"/>
     </target>
 

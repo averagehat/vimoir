@@ -23,7 +23,7 @@ import java.io.File;
  *
  * <p>Never directly instantiated by the application.
  */
-public class Buffer {
+public class NetbeansBuffer {
     /** The full pathname of this buffer. */
     public String pathname;
     /** True when the buffer has been registered with Netbeans. */
@@ -35,7 +35,7 @@ public class Buffer {
     int buf_id;
     Netbeans nbsock;
 
-    Buffer(String pathname, int buf_id, Netbeans nbsock) {
+    NetbeansBuffer(String pathname, int buf_id, Netbeans nbsock) {
         this.pathname = pathname;
         this.buf_id = buf_id;
         this.nbsock = nbsock;
