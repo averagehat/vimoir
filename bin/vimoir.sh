@@ -35,13 +35,14 @@ run()
 
     if [[ "${!#}" = "python" ]] ; then
         unset args[${#args[@]}-1]
-        python $pwd/netbeans.py "${args[@]}"
+        python $pwd/netbeans.py --conf=conf "${args[@]}"
 
     elif [[ "${!#}" = "jython" ]] ; then
         unset args[${#args[@]}-1]
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         # mandatory parameter: path to phonemic.jar file
-        jython $pwd/netbeans.py "${args[@]}" $PHONEMIC_DIR/phonemic.jar
+        jython $pwd/netbeans.py --conf=conf "${args[@]}" \
+                                $PHONEMIC_DIR/phonemic.jar
 
     elif [[ "${!#}" = "java" ]] ; then
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
@@ -53,7 +54,7 @@ run()
             vimoir.netbeans.Netbeans
 
     else
-        echo "usage: $pgmname [--debug] python|jython|jyjava|java"
+        echo "usage: $pgmname python|jython|java"
     fi
 
 }

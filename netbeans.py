@@ -16,6 +16,7 @@ import sys
 import os
 import time
 import re
+import optparse
 import asyncore
 import asynchat
 import socket
@@ -24,7 +25,6 @@ import logging
 import ConfigParser
 from logging import error, info, debug
 
-PROPERTIES_PATHNAME = os.path.join('conf', 'vimoir.properties')
 SECTION_NAME = 'vimoir properties'
 DEFAULTS = {
     'vimoir.netbeans.python.client': 'src.examples.phonemic.Phonemic',
@@ -157,14 +157,16 @@ def setup_logger(debug):
         level = logging.DEBUG
     root.setLevel(level)
 
-def load_properties():
+def load_properties(filename):
     """Load configuration properties."""
     opts = RawConfigParser(DEFAULTS)
     try:
-        f = FileLike(PROPERTIES_PATHNAME)
+        f = FileLike(filename)
         opts.readfp(f)
         f.close()
-    except IOError:
+        info('loading properties from %s', filename)
+    except IOError, e:
+        error('cannot load properties, using defaults: %s', e)
         opts.add_section(SECTION_NAME)
     except ConfigParser.ParsingError, e:
         error(e)
@@ -247,8 +249,9 @@ class Reply(object):
         pass
 
 class Server(asyncore.dispatcher):
-    def __init__(self, host, port):
+    def __init__(self, host, port, props_file):
         asyncore.dispatcher.__init__(self)
+        self.props_file = props_file
         self.nbsock = None
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind_listen(host, port)
@@ -269,14 +272,18 @@ class Server(asyncore.dispatcher):
             return
 
         # get the class to instantiate
-        opts = load_properties()
+        opts = load_properties(self.props_file)
         name = opts.get('vimoir.netbeans.python.client')
         idx = name.rfind('.')
         if idx == -1:
             stmt = "import %s as clazz" % name
         else:
             stmt = "from %s import %s as clazz" % (name[:idx], name[idx+1:])
-        exec stmt
+        try:
+            exec stmt
+        except ImportError, e:
+            error(e)
+            sys.exit(1)
 
         self.nbsock = Netbeans(self, opts)
         client = clazz(self.nbsock)
@@ -610,9 +617,22 @@ class BufferSet(dict):
         assert False, 'not implemented'
 
 def main():
-    setup_logger(sys.argv[1:2] == ['--debug'])
-    opts = load_properties()
-    Server(opts.get('vimoir.netbeans.host'), opts.get('vimoir.netbeans.port'))
+    formatter = optparse.IndentedHelpFormatter(max_help_position=30)
+    parser = optparse.OptionParser(
+                    usage='usage: python %prog [options] args...',
+                    formatter=formatter)
+    parser.add_option('-d', '--debug',
+            action="store_true", default=False,
+            help='enable printing debug information')
+    parser.add_option('--conf', type='string', default='.',
+            help=('path to vimoir.properties directory (default \'%default\')'))
+    (options, sys.argv) = parser.parse_args(args=sys.argv)
+    setup_logger(options.debug)
+    props_file = os.path.join(options.conf, 'vimoir.properties')
+    opts = load_properties(props_file)
+
+    Server(opts.get('vimoir.netbeans.host'), opts.get('vimoir.netbeans.port'),
+                                                                    props_file)
     timeout = int(opts.get('vimoir.netbeans.timeout')) / 1000.0
     user_interval = (int(opts.get('vimoir.netbeans.user_interval')) / 1000.0)
     last = time.time()
