@@ -33,11 +33,9 @@
     <target name="dist" depends="build">
         <property name="dist.dir"    location="../../dist"/>
         <jar jarfile="${dist.dir}/${filename}.jar" basedir="${classes.dir}">
-            <fileset dir="${src.dir}/" includes="manifest.txt"/>
-        </jar>
-        <jar jarfile="${dist.dir}/${filename}-SRC.jar" basedir="${classes.dir}">
-            <fileset dir="${src.dir}/" includes="**/*.java"/>
-            <fileset dir="${src.dir}/" includes="manifest.txt"/>
+            <manifest>
+              <attribute name="Implementation-Version" value="${vimoir.version}"/>
+            </manifest>
         </jar>
         <move file="${dist.dir}/${filename}.jar" todir="${tar.dir}/lib"/>
     </target>

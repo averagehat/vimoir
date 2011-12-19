@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # Copyright 2011 Xavier de Gaye
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +26,7 @@ import logging
 import ConfigParser
 from logging import error, info, debug
 
+VERSION=0.1 # no spaces
 SECTION_NAME = 'vimoir properties'
 DEFAULTS = {
     'vimoir.netbeans.python.client': 'src.examples.phonemic.Phonemic',
@@ -692,6 +694,7 @@ class BufferSet(dict):
 def main():
     formatter = optparse.IndentedHelpFormatter(max_help_position=30)
     parser = optparse.OptionParser(
+                    version='%prog ' + str(VERSION),
                     usage='usage: python %prog [options] args...',
                     formatter=formatter)
     parser.add_option('-d', '--debug',

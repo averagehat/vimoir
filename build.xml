@@ -14,6 +14,7 @@
                 <filelist refid="projects"/>
                 <property name="jar.dir"    value="../../lib"/>
                 <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
+                <property name="vimoir.version" value="${vimoir.version}"/>
             </subant>
         </sequential>
     </macrodef>
@@ -47,6 +48,9 @@
     </target>
 
     <target name="dist" depends="init,process-readme" description="Distribute vimoir">
+        <exec executable="/bin/sed" os="Linux" output="netbeans.py">
+            <arg line="-e s/^VERSION=[0-9]\.[0-9]\(.*\)$/VERSION=${vimoir.version}\1/ netbeans.py"/>
+        </exec>
         <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
             <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>
@@ -57,18 +61,17 @@
         <iterate target="dist"/>
     </target>
 
-    <target name="tarball" depends="dist,doc" description="Create the tarball">
-        <copy todir="${tar.dir}/conf"><fileset dir="conf"/></copy>
-        <copy todir="${tar.dir}/bin"><fileset dir="bin"/></copy>
-        <copy todir="${tar.dir}/doc">
-            <fileset dir="doc"/>
-            <fileset dir="vimoir.wiki" includes="*.wiki"/>
-        </copy>
-        <copy todir="${tar.dir}">
-            <fileset dir="." includes="**/*.py,README,NEWS,LICENSE"/>
-        </copy>
+    <target name="wiki" if="readme.exists">
+        <copy todir="${tar.dir}/doc"><fileset dir="vimoir.wiki" includes="*.wiki"/></copy>
+    </target>
+
+    <target name="tarball" depends="dist,doc,wiki" description="Create the tarball">
+        <copy todir="${tar.dir}/conf"><fileset dir="conf" includes="*.properties"/></copy>
+        <copy todir="${tar.dir}/bin"><fileset dir="bin" includes="*.sh"/></copy>
+        <copy todir="${tar.dir}/doc"><fileset dir="doc"/></copy>
+        <copy todir="${tar.dir}"><fileset dir="." includes="**/*.py,README,NEWS,LICENSE"/></copy>
         <exec executable="/bin/bash" os="Linux">
-            <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh'"/>
+            <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh ${tar.dir}/netbeans.py'"/>
         </exec>
         <exec executable="/bin/bash" os="Linux">
             <arg line="-c 'cd ${dist.dir}; tar czf ${dist.name}.tar.gz ${dist.name}'"/>
