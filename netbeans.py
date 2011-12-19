@@ -48,6 +48,8 @@ RE_EVENT = ur'^\s*(?P<buf_id>\d+):(?P<event>\S+)=(?P<seqno>\d+)'        \
            ur'# RE: a netbeans event message'
 RE_LNUMCOL = ur'^(?P<lnum>\d+)/(?P<col>\d+)'                            \
              ur'# RE: lnum/col'
+RE_TOKEN_SPLIT = r'\s*"((?:\\"|[^"])+)"\s*|\s*([^ "]+)\s*'              \
+                 r'# RE: split a string in tokens, handling quotes'
 
 # compile regexps
 re_escape = re.compile(RE_ESCAPE, re.VERBOSE)
@@ -56,6 +58,7 @@ re_auth = re.compile(RE_AUTH, re.VERBOSE)
 re_response = re.compile(RE_RESPONSE, re.VERBOSE)
 re_event = re.compile(RE_EVENT, re.VERBOSE)
 re_lnumcol = re.compile(RE_LNUMCOL, re.VERBOSE)
+re_token_split = re.compile(RE_TOKEN_SPLIT, re.VERBOSE)
 
 def escape_char(matchobj):
     """Escape special characters in string."""
@@ -65,10 +68,6 @@ def escape_char(matchobj):
     if matchobj.group(0) == u'\r': return ur'\r'
     if matchobj.group(0) == u'\\': return ur'\\'
     assert False
-
-def quote(msg):
-    """Quote 'msg' and escape special characters."""
-    return u'"%s"' % re_escape.sub(escape_char, msg)
 
 def unescape_char(matchobj):
     """Remove escape on special characters in quoted string."""
@@ -226,6 +225,45 @@ class StderrHandler(logging.StreamHandler):
 class Error(Exception):
     """Base class for exceptions."""
 
+class NetbeansClient(object):
+    """This class implements all the NetbeansEventHandler methods.
+
+    This class exists so as to be subclassed by implementations that want to
+    ignore most events and to implement only the ones they are interested in.
+    """
+    def __init__(self, nbsock):
+        self.nbsock = nbsock
+
+    #-----------------------------------------------------------------------
+    #   Events
+    #-----------------------------------------------------------------------
+
+    def event_startupDone(self):
+        """Terminate the server on startup to allow only one Netbeans session."""
+        self.nbsock.terminate_server()
+
+    def event_disconnect(self):
+        pass
+
+    def event_fileOpened(self, buf):
+        pass
+
+    def event_killed(self, buf):
+        pass
+
+    def event_tick(self):
+        pass
+
+    def event_error(self, msg):
+        pass
+
+    #-----------------------------------------------------------------------
+    #   Commands
+    #-----------------------------------------------------------------------
+
+    def default_cmd_processing(self, cmd, args, buf):
+        pass
+
 class Reply(object):
     """Abstract class. A Reply instance is a callable used to process
     the result of a  function call in the reply received from netbeans.
@@ -310,6 +348,18 @@ class Netbeans(asynchat.async_chat):
         self.seqno = 0
         self.last_seqno = 0
         self.encoding = opts.get('vimoir.netbeans.encoding')
+
+    def __getattr__(self, attr):
+        """Override buggy __getattr__ asyncore method."""
+        try:
+            retattr = getattr(self.socket, attr)
+        except AttributeError:
+            msg = ("%s instance has no attribute '%s'"
+                                 %(self.__class__.__name__, attr))
+            if not attr.startswith('evt_') and not attr.startswith('cmd_'):
+                error(msg)
+            raise AttributeError(msg)
+        return retattr
 
     def set_client(self, client):
         self.client = client
@@ -441,9 +491,10 @@ class Netbeans(asynchat.async_chat):
                                     (a, b))(*nbstring.split(None, 1))
                 try:
                     method = getattr(self.client, 'cmd_%s' % cmd)
-                    method(args, buf)
                 except AttributeError:
                     self.client.default_cmd_processing(cmd, args, buf)
+                else:
+                    method(args, buf)
 
     def evt_killed(self, buf_id, nbstring, arg_list):
         """A file was deleted or wiped out by the user."""
@@ -492,6 +543,26 @@ class Netbeans(asynchat.async_chat):
         else:
             info('failed to send_request: not connected')
 
+    def quote(msg):
+        """Quote 'msg' and escape special characters."""
+        return u'"%s"' % re_escape.sub(escape_char, msg)
+    quote = staticmethod(quote)
+
+    def split_quoted_string(msg):
+        """Return the list of whitespace separated tokens from 'msg', handling
+        double quoted substrings as a token.
+
+         The '\' escaping character of the special characters in quoted
+        substrings are removed.
+
+        >>> print split_quoted_string(r'"a c" b v "this \\"is\\" foobar argument" Y ')
+        ['a c', 'b', 'v', 'this "is" foobar argument', 'Y']
+
+        """
+        match = re_token_split.findall(msg)
+        return [unquote(x) or y for x, y in match]
+    split_quoted_string = staticmethod(split_quoted_string)
+
 class NetbeansBuffer(object):
     """A Vim buffer.
 
@@ -524,8 +595,10 @@ class NetbeansBuffer(object):
         """Register the buffer with Netbeans."""
         if not self.registered:
             if editFile:
-                self.nbsock.send_cmd(self, u'editFile', quote(self.pathname))
-            self.nbsock.send_cmd(self, u'putBufferNumber', quote(self.pathname))
+                self.nbsock.send_cmd(self, u'editFile',
+                            self.nbsock.quote(self.pathname))
+            self.nbsock.send_cmd(self, u'putBufferNumber',
+                            self.nbsock.quote(self.pathname))
             self.nbsock.send_cmd(self, u'stopDocumentListen')
             self.registered = True
 

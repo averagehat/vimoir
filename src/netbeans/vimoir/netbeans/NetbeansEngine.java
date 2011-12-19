@@ -38,6 +38,16 @@ public interface NetbeansEngine {
     public String quote(String text);
 
     /**
+     * Split a string including quoted parts.
+     *
+     * @param  text the string to split
+     * @return the list of whitespace separated tokens from <code>text</code>,
+     * handling double quoted substrings as a token. The '\' escaping character
+     * of the special characters in quoted substrings are removed.
+     */
+    public String[] split_quoted_string(String text);
+
+    /**
      * Send a netbeans command.
      *
      * @param buf   null when the bufID is zero

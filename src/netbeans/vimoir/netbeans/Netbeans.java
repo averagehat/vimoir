@@ -22,12 +22,14 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Properties;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.text.MessageFormat;
 import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
 
 class Netbeans extends Connection implements NetbeansEngine {
     private static Pattern re_auth;
@@ -36,6 +38,7 @@ class Netbeans extends Connection implements NetbeansEngine {
     private static Pattern re_lnumcol;
     private static Pattern re_escape;
     private static Pattern re_unescape;
+    private static Pattern re_token_split;
     Server server;
     Properties props;
     NetbeansEventHandler client = null;
@@ -51,6 +54,7 @@ class Netbeans extends Connection implements NetbeansEngine {
         re_lnumcol = Pattern.compile("^(\\d+)/(\\d+)");
         re_escape = Pattern.compile("[\"\\n\\t\\r\\\\]");
         re_unescape = Pattern.compile("\\\\[\"ntr\\\\]");
+        re_token_split = Pattern.compile("\\s*\"((?:\\\"|[^\"])+)\"\\s*|\\s*([^ \"]+)\\s*");
     }
 
     Netbeans(Server server, Properties props) throws IOException {
@@ -209,14 +213,29 @@ class Netbeans extends Connection implements NetbeansEngine {
                 Class[] parameterTypes = { args.getClass(), buf.getClass() };
                 Object[] parameters = { args, buf };
                 String cmd = "cmd_" + splitted[0];
+                Method method = null;
                 try {
-                    Method method = this.client.getClass().getDeclaredMethod(
+                    method = this.client.getClass().getDeclaredMethod(
                                                     cmd, parameterTypes);
-                    method.invoke((Object) this.client, parameters);
                 } catch (NoSuchMethodException e) {
                     this.client.default_cmd_processing(splitted[0], args, buf);
-                } catch (Exception e) {
-                    logger.severe(e.toString());
+                    return;
+                }
+                Exception exception = null;
+                try {
+                    method.invoke((Object) this.client, parameters);
+                } catch (IllegalAccessException e) {
+                    exception = e;
+                } catch (InvocationTargetException e) {
+                    exception = e;
+                }
+                if (exception != null) {
+                    Throwable cause = exception.getCause();
+                    if (exception == null)
+                        cause = exception;
+                    logger.severe(cause.toString());
+                    cause.printStackTrace();
+                    System.exit(1);
                 }
             }
         }
@@ -311,11 +330,11 @@ class Netbeans extends Connection implements NetbeansEngine {
 
     /** Remove escape on special characters in quoted string. */
     static String unescape_char(String escaped) {
-        if (escaped == "\\\"") return  "\"";
-        if (escaped == "\\n") return "\n";
-        if (escaped == "\\t") return "\t";
-        if (escaped == "\\r") return "\r";
-        if (escaped == "\\\\") return "\\";
+        if (escaped.equals("\\\"")) return  "\"";
+        if (escaped.equals("\\n")) return "\n";
+        if (escaped.equals("\\t")) return "\t";
+        if (escaped.equals("\\r")) return "\r";
+        if (escaped.equals("\\\\")) return "\\";
         assert false: "regex and unescape_char don't match";
         return "";
     }
@@ -338,11 +357,24 @@ class Netbeans extends Connection implements NetbeansEngine {
         return result;
     }
 
-    /**
-     * Start the Netbeans engine.
-     *
-     * @param args the command line arguments
-     */
+    /** Split a string including quoted parts. */
+    public String[] split_quoted_string(String text) {
+        ArrayList result = new ArrayList();
+        Matcher matcher = re_token_split.matcher(text);
+        if (matcher.find(0)) {
+            do {
+                String s = matcher.group(1);
+                if (s != null)
+                    s = this.unquote(s);
+                else
+                    s = matcher.group(2);
+                result.add(s);
+            } while (matcher.find());
+        }
+        return (String[]) result.toArray(new String[1]);
+    }
+
+    /** Start the Netbeans engine. */
     public static void main(String[] args) throws IOException {
         Properties props = new Properties();
         URL url = ClassLoader.getSystemResource("vimoir.properties");

@@ -61,6 +61,10 @@ public interface NetbeansEventHandler {
      */
     public void event_error(String message);
 
+    //-----------------------------------------------------------------------
+    //   Commands
+    //-----------------------------------------------------------------------
+
     /**
      * The default method invoked by the Netbeans engine on a <code>keyAtPos</code>
      * Netbeans event.

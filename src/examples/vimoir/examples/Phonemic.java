@@ -97,6 +97,10 @@ public class Phonemic implements NetbeansEventHandler {
 
     public void event_tick() {}
 
+    //-----------------------------------------------------------------------
+    //   Commands
+    //-----------------------------------------------------------------------
+
     /**
      * Handle nbkey commands not matched with a "cmd_keyName" method.
      *

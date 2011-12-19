@@ -36,7 +36,7 @@
                 <fileset dir="lib" includes="*.jar"/>
             </classpath>
             <fileset dir="${netbeans.doc.dir}" includes="Netbeans*" excludes="Netbeans.java"/>
-            <fileset dir="${examples.doc.dir}" includes="Phonemic.java"/>
+            <fileset dir="${examples.doc.dir}" includes="Phonemic.java,Process.java"/>
         </javadoc>
     </target>
 
@@ -77,14 +77,14 @@
     </target>
 
     <target name="clean" description="clean up" >
-        <delete>
-            <fileset dir="." includes="*.class"/>
-            <fileset dir="src" includes="**/*.pyc"/>
-        </delete>
         <delete dir="build"/>
         <delete dir="lib"/>
         <delete dir="doc"/>
         <delete dir="${dist.dir}"/>
+        <delete>
+            <fileset dir="." includes="**/*.class"/>
+            <fileset dir="." includes="**/*.pyc"/>
+        </delete>
     </target>
 
 </project>
