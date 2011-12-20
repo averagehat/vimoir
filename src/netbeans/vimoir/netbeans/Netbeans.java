@@ -290,13 +290,8 @@ class Netbeans extends Connection implements NetbeansSocket {
             space = "";
         Object[] prm = {new Long(buf_id), request, new Long(this.seqno), space, args};
         String msg = MessageFormat.format(fmt, prm);
-
-        if (this.state.is_connected()) {
-            this.send(msg + '\n');
-            logger.finest(msg);
-        }
-        else
-            logger.info("failed to send_request: not connected");
+        this.send(msg + '\n');
+        logger.finest(msg);
     }
 
     /** Escape special characters in string.*/
@@ -463,14 +458,15 @@ class Netbeans extends Connection implements NetbeansSocket {
         }
 
         /** Return the buffer at index buf_id in the list. */
-        NetbeansBuffer getbuf_at(int buf_id) {
+        synchronized NetbeansBuffer getbuf_at(int buf_id) {
             if (buf_id <= 0 || buf_id > this.buf_list.size())
                 return null;
             return (NetbeansBuffer) this.buf_list.get(buf_id - 1);
         }
 
         /** Get the buffer with pathname as key, instantiate one when not found. */
-        NetbeansBuffer get(String pathname) throws NetbeansInvalidPathnameException {
+        synchronized NetbeansBuffer get(String pathname)
+                                        throws NetbeansInvalidPathnameException {
             File f = new File(pathname);
             String path = f.getPath();
             String fullpath = f.getAbsolutePath();

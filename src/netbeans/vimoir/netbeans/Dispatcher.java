@@ -289,7 +289,8 @@ abstract class Dispatcher {
      * @param data  buffer holding the bytes to be written
      */
     void send(ByteBuffer data) throws IOException {
-        this.getSocketChannel().write(data);
+        if (this.state.is_connected())
+            this.getSocketChannel().write(data);
     }
 
     /**

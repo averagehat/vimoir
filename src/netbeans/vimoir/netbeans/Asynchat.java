@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CharacterCodingException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * A class supporting chat-style (command/response) protocols.
@@ -37,6 +38,7 @@ abstract class Asynchat extends Dispatcher {
     static Charset charset = Charset.forName("US-ASCII");
     static CharsetEncoder encoder = charset.newEncoder();
     static CharsetDecoder decoder = charset.newDecoder();
+    ConcurrentLinkedQueue queue = new ConcurrentLinkedQueue();
     String terminator = null;
     ByteBuffer outbuf;
     ByteBuffer inbuf;
@@ -88,37 +90,45 @@ abstract class Asynchat extends Dispatcher {
     abstract void found_terminator();
 
     boolean readyToWrite() {
-        return (this.state.writable() && this.outbuf.remaining() != 0);
+        return (this.state.writable()
+                && (this.queue.size() != 0 || this.outbuf.remaining() != 0));
     }
 
     void initiateSend() throws IOException {
+        String str = null;
+        while ((str = (String) this.queue.peek()) != null
+                && this.refill_buffer(str))
+            queue.poll();
         super.send(this.outbuf);
     }
 
-    void send(String str) throws java.nio.BufferOverflowException {
+    /** Refill the output buffer.  */
+    boolean refill_buffer(String str) {
         int len = str.length();
-        if (len == 0) return;
-        if (len > this.outbuf.remaining()) {
-            this.outbuf.compact();
-            this.outbuf.flip();
-        }
+        if (len == 0) return true;
+        if (len > BUFFER_SIZE - this.outbuf.remaining())
+            return false;
+        if (len > BUFFER_SIZE - this.outbuf.limit())
+            this.outbuf.compact().flip();
 
-        this.outbuf.mark();
-        this.outbuf.position(this.outbuf.limit());
-        this.outbuf.limit(this.outbuf.capacity());
+        this.outbuf.mark().position(this.outbuf.limit()).limit(BUFFER_SIZE);
         try {
             this.outbuf.put(this.encoder.encode(CharBuffer.wrap(str)));
         } catch (CharacterCodingException e) {
             logger.severe(e.toString());
             System.exit(1);
         }
-        this.outbuf.limit(this.outbuf.position());
-        this.outbuf.reset();
+        this.outbuf.limit(this.outbuf.position()).reset();
+        return true;
+    }
+
+    void send(String str) {
+        this.queue.add(str);
     }
 
     String recv() {
         try {
-            int count = super.recv(this.inbuf);
+            super.recv(this.inbuf);
             this.inbuf.flip();
             String str =  this.decoder.decode(this.inbuf).toString();
             this.inbuf.clear();
