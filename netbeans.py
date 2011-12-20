@@ -26,7 +26,7 @@ import logging
 import ConfigParser
 from logging import error, info, debug
 
-VERSION=0.1 # no spaces
+VERSION=0.2 # no spaces
 SECTION_NAME = 'vimoir properties'
 DEFAULTS = {
     'vimoir.netbeans.python.client': 'src.examples.phonemic.Phonemic',

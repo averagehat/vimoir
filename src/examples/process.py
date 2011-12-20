@@ -44,7 +44,7 @@ class Process(NetbeansClient):
                     msg = "Result of process '%s':\n%s" % (args, output)
                     send_cmd(None, 'showBalloon', quote(msg))
 
-        # nbsock is the netbeans engine (set in the super class constructor)
+        # nbsock is the netbeans socket (set in the super class constructor)
         split_quoted_string = self.nbsock.split_quoted_string
         quote = self.nbsock.quote
         send_cmd = self.nbsock.send_cmd

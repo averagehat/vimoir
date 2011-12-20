@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
-    <property name="vimoir.version" value="0.1"/>
+    <property name="vimoir.version" value="0.2"/>
     <property name="dist.dir" location="dist"/>
     <property name="netbeans.doc.dir" location="src/netbeans/vimoir/netbeans"/>
     <property name="examples.doc.dir" location="src/examples/vimoir/examples"/>
@@ -50,9 +50,6 @@
     <target name="dist" depends="init,process-readme" description="Distribute vimoir">
         <exec executable="/bin/sed" os="Linux" output="netbeans.py">
             <arg line="-e s/^VERSION=[0-9]\.[0-9]\(.*\)$/VERSION=${vimoir.version}\1/ netbeans.py"/>
-        </exec>
-        <exec executable="/bin/sed" os="Linux" output="bin/vimoir.sh">
-            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ bin/vimoir.sh"/>
         </exec>
         <property name="dist.name" value="${ant.project.name}-v${vimoir.version}"/>
         <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
