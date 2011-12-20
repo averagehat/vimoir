@@ -19,7 +19,7 @@
         </sequential>
     </macrodef>
 
-    <target name="all" depends="tarball"
+    <target name="all" depends="archive"
             description="Compile, build and distribute the jar files">
     </target>
 
@@ -65,11 +65,14 @@
         <copy todir="${tar.dir}/doc"><fileset dir="vimoir.wiki" includes="*.wiki"/></copy>
     </target>
 
-    <target name="tarball" depends="dist,doc,wiki" description="Create the tarball">
+    <target name="archive" depends="dist,doc,wiki" description="Create the archives">
         <copy todir="${tar.dir}/conf"><fileset dir="conf" includes="*.properties"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin" includes="*.sh"/></copy>
         <copy todir="${tar.dir}/doc"><fileset dir="doc"/></copy>
         <copy todir="${tar.dir}"><fileset dir="." includes="**/*.py,README,NEWS,LICENSE"/></copy>
+        <zip destfile="${dist.name}.zip" basedir="${dist.dir}"/>
+        <move file="${dist.name}.zip" todir="${dist.dir}"/>
+
         <exec executable="/bin/bash" os="Linux">
             <arg line="-c 'chmod +x ${tar.dir}/bin/*.sh ${tar.dir}/netbeans.py'"/>
         </exec>
