@@ -311,7 +311,7 @@ abstract class Dispatcher {
     /**
      * Close the socket and remove the channnel from its selector.
      */
-    void close() {
+    public void close() {
         logger.info("close: " + this.toString());
         this.state.closing();
         if (this.channel != null) {

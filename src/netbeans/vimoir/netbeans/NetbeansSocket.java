@@ -16,11 +16,14 @@
 
 package vimoir.netbeans;
 
-/** Interface implemented by the Netbeans engine. */
-public interface NetbeansEngine {
+/** Interface implemented by the Netbeans socket. */
+public interface NetbeansSocket {
 
     /** Terminate the server. */
     public void terminate_server();
+
+    /** Close the socket. */
+    public void close();
 
     /**
      * Return the buffer instance associated with this pathname.

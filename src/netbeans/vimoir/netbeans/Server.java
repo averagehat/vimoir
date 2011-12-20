@@ -82,7 +82,7 @@ class Server extends Dispatcher {
         NetbeansEventHandler client = null;
         try {
             Class clazz = Class.forName(name);
-            Class[] types = { vimoir.netbeans.NetbeansEngine.class };
+            Class[] types = { vimoir.netbeans.NetbeansSocket.class };
             Constructor constructor = clazz.getConstructor(types);
             Object[] params = { this.nbsock };
             client = (NetbeansEventHandler) constructor.newInstance(params);

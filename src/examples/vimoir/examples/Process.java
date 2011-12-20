@@ -22,7 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import vimoir.netbeans.NetbeansClient;
 import vimoir.netbeans.NetbeansEventHandler;
-import vimoir.netbeans.NetbeansEngine;
+import vimoir.netbeans.NetbeansSocket;
 import vimoir.netbeans.NetbeansBuffer;
 
 /**
@@ -43,9 +43,9 @@ public class Process extends NetbeansClient implements NetbeansEventHandler {
     /**
      * Constructor.
      *
-     * @param nbsock the Netbeans engine
+     * @param nbsock the Netbeans socket
      */
-    public Process(NetbeansEngine nbsock) {
+    public Process(NetbeansSocket nbsock) {
         super(nbsock);
     }
 
@@ -58,27 +58,27 @@ public class Process extends NetbeansClient implements NetbeansEventHandler {
     public void cmd_run(final String args, NetbeansBuffer buf) {
         final String[] command = this.nbsock.split_quoted_string(args);
         Thread thread = new Thread(new Runnable() {
-                public void run() {
-                    String output = "";
-                    try {
-                        java.lang.Process p = new ProcessBuilder(Arrays.asList(command))
-                                            .redirectErrorStream(true).start();
-                        p.waitFor();
-                        BufferedReader br = new BufferedReader(
-                                            new InputStreamReader(p.getInputStream()));
-                        String line = null;
-                        while ((line = br.readLine()) != null)
-                            output += line + "\n";
-                    } catch (IOException e) {
-                        nbsock.send_cmd(null, "showBalloon", nbsock.quote(e.toString()));
-                        return;
-                    } catch (InterruptedException e) {
-                        nbsock.send_cmd(null, "showBalloon", nbsock.quote(e.toString()));
-                        return;
-                    }
-                    String msg = "Result of process '" + args + "':\n" + output;
-                    nbsock.send_cmd(null, "showBalloon", nbsock.quote(msg));
+            public void run() {
+                String output = "";
+                try {
+                    java.lang.Process p = new ProcessBuilder(Arrays.asList(command))
+                                        .redirectErrorStream(true).start();
+                    p.waitFor();
+                    BufferedReader br = new BufferedReader(
+                                        new InputStreamReader(p.getInputStream()));
+                    String line = null;
+                    while ((line = br.readLine()) != null)
+                        output += line + "\n";
+                } catch (IOException e) {
+                    nbsock.send_cmd(null, "showBalloon", nbsock.quote(e.toString()));
+                    return;
+                } catch (InterruptedException e) {
+                    nbsock.send_cmd(null, "showBalloon", nbsock.quote(e.toString()));
+                    return;
                 }
+                String msg = "Result of process '" + args + "':\n" + output;
+                nbsock.send_cmd(null, "showBalloon", nbsock.quote(msg));
+            }
         });
         thread.start();
     }

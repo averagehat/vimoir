@@ -17,7 +17,7 @@
 package vimoir.examples;
 
 import java.util.logging.Logger;
-import vimoir.netbeans.NetbeansEngine;
+import vimoir.netbeans.NetbeansSocket;
 import vimoir.netbeans.NetbeansEventHandler;
 import vimoir.netbeans.NetbeansBuffer;
 import org.sodbeans.phonemic.TextToSpeechFactory;
@@ -33,14 +33,14 @@ public class Phonemic implements NetbeansEventHandler {
     /** The type of speech is Object and not TextToSpeech to allow for running
      * without phonemic.jar installed. */
     Object speech;
-    NetbeansEngine nbsock;
+    NetbeansSocket nbsock;
 
     /**
      * The constructor.
      *
-     * @param nbsock the Netbeans engine
+     * @param nbsock the Netbeans socket
      */
-    public Phonemic(NetbeansEngine nbsock) {
+    public Phonemic(NetbeansSocket nbsock) {
         this.nbsock = nbsock;
         this.speech = get_speech();
     }

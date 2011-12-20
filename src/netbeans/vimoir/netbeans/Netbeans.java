@@ -31,7 +31,7 @@ import java.text.MessageFormat;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
-class Netbeans extends Connection implements NetbeansEngine {
+class Netbeans extends Connection implements NetbeansSocket {
     private static Pattern re_auth;
     private static Pattern re_event;
     private static Pattern re_response;
@@ -374,7 +374,7 @@ class Netbeans extends Connection implements NetbeansEngine {
         return (String[]) result.toArray(new String[1]);
     }
 
-    /** Start the Netbeans engine. */
+    /** Start the server. */
     public static void main(String[] args) throws IOException {
         Properties props = new Properties();
         URL url = ClassLoader.getSystemResource("vimoir.properties");

@@ -10,13 +10,13 @@ such as registering buffers with a <i>bufID</i>, managing <i>seqno</i> command
 sequence numbers, instantiating the client class on each new connection request
 from Vim and managing the corresponding Netbeans socket connection.
 
-<p> To develop a client, one must implement a class whose constructor accepts a
-Netbeans engine object which is an instance of the {@link
-vimoir.netbeans.NetbeansEngine} interface. The Netbeans engine provides the
-methods to send Netbeans commands and functions. The Netbeans engine
-instantiates the client class on each new socket connection. The client class
-is defined by its qualified name which is the value of the
-<code>vimoir.netbeans.java.client</code> property. The client class must also
+<p> To develop a client, one must implement a class whose constructor signature
+has a single argument which is an instance of the {@link
+vimoir.netbeans.NetbeansSocket} interface. The NetbeansSocket object provides the
+methods to send Netbeans commands and functions. The server instantiates a
+NetbeansSocket object and the client class on each new incoming connection. The
+client class is defined by its qualified name which is the value of the
+<code>vimoir.netbeans.java.client</code> property.  The client class must also
 implement the NetbeansEventHandler interface where are defined the methods used
 to process Netbeans events.
 
@@ -27,10 +27,10 @@ when such a method has been implemented, or to the NetbeansEventHandler
 <code>default_cmd_processing()</code> method otherwise.
 
 <p> A {@link vimoir.netbeans.NetbeansBuffer} instance is registered to Netbeans
-by the Netbeans engine on a the first <code>fileOpened</code> event for this
+by the Netbeans socket on a the first <code>fileOpened</code> event for this
 buffer.  When the client application needs to open a new buffer for which there
 has been no <code>fileOpened</code> event, a call to the {@link
-vimoir.netbeans.NetbeansEngine#get_buffer} method returns a NetbeansBuffer
+vimoir.netbeans.NetbeansSocket#get_buffer} method returns a NetbeansBuffer
 object, this object must then be registered to Netbeans with its {@link
 vimoir.netbeans.NetbeansBuffer#register} method.
 

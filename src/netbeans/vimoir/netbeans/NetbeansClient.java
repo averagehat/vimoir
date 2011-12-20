@@ -23,10 +23,10 @@ package vimoir.netbeans;
  * ignore most events and to implement only the ones they are interested in.
  */
 public class NetbeansClient implements NetbeansEventHandler {
-    /** The Netbeans engine. */
-    public NetbeansEngine nbsock;
+    /** The Netbeans socket. */
+    public NetbeansSocket nbsock;
 
-    public NetbeansClient (NetbeansEngine nbsock) {
+    public NetbeansClient (NetbeansSocket nbsock) {
         this.nbsock = nbsock;
     }
 
