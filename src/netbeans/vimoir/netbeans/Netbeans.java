@@ -236,7 +236,7 @@ class Netbeans extends Connection implements NetbeansSocket {
                 }
                 if (exception != null) {
                     Throwable cause = exception.getCause();
-                    if (exception == null)
+                    if (cause == null)
                         cause = exception;
                     logger.severe(cause.toString());
                     cause.printStackTrace();
@@ -380,13 +380,36 @@ class Netbeans extends Connection implements NetbeansSocket {
     }
 
     /** Start the server. */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException,
+                            ClassNotFoundException, IllegalAccessException {
         Properties props = new Properties();
         URL url = ClassLoader.getSystemResource("vimoir.properties");
         if (url != null) {
             InputStream f = url.openStream();
             props.load(f);
             f.close();
+        }
+
+        // invoke the main() method of the client class
+        String name = props.getProperty("vimoir.netbeans.java.client",
+                                                    "vimoir.examples.Phonemic");
+        Class clazz = Class.forName(name);
+        Class[] parameterTypes = { args.getClass() };
+        Object[] parameters = { args };
+        try {
+            Method method = clazz.getDeclaredMethod("main", parameterTypes);
+            try {
+                method.invoke(null, parameters);
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause == null)
+                    cause = e;
+                logger.severe(cause.toString());
+                cause.printStackTrace();
+                System.exit(1);
+            }
+        } catch (NoSuchMethodException e) {
+            // ignore
         }
 
         String host = props.getProperty("vimoir.netbeans.host", "");

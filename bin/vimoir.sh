@@ -32,6 +32,7 @@ fullpath()
 run()
 {
     args=("$@")
+    unset args[${#args[@]}-1]
 
     if [[ "${!#}" = "python" ]] ; then
         unset args[${#args[@]}-1]
@@ -46,15 +47,15 @@ run()
 
     elif [[ "${!#}" = "java" ]] ; then
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
-        jarfiles=$jarfiles:$PHONEMIC_DIR/phonemic.jar
+        jarfiles=$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans-examples.jar
         java -cp $jarfiles:conf                                     \
             -Djava.util.logging.config.file=conf/logging.properties \
-            vimoir.netbeans.Netbeans
+            vimoir.netbeans.Netbeans "${args[@]}"
 
     else
-        echo "usage: $pgmname python|jython|java"
+        echo "usage: $pgmname [options] [parameters] python|jython|java"
     fi
 
 }

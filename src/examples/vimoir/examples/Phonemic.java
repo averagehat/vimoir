@@ -140,5 +140,11 @@ public class Phonemic implements NetbeansEventHandler {
         }
         return speech;
     }
+
+    /** Print the command line parameters. */
+    public static void main(String[] args) {
+        for (int i=0; i < args.length; i++)
+            logger.info("parameter " + i + ": " + args[i]);
+    }
 }
 

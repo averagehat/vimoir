@@ -77,7 +77,8 @@ class Server extends Dispatcher {
             props.load(f);
             f.close();
         }
-        String name = props.getProperty("vimoir.netbeans.java.client", "vimoir.examples.Phonemic");
+        String name = props.getProperty("vimoir.netbeans.java.client",
+                                                    "vimoir.examples.Phonemic");
         this.nbsock = new Netbeans(this, props);
         NetbeansEventHandler client = null;
         try {
