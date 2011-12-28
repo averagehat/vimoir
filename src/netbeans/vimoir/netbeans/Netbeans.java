@@ -81,6 +81,11 @@ class Netbeans extends Connection implements NetbeansSocket {
         this.server.close();
     }
 
+    public void close() {
+        super.close();
+        this.ready = false;
+    }
+
     /** Process new line terminated netbeans message. */
     void found_terminator() {
         String msg = this.getBuff();
@@ -290,8 +295,13 @@ class Netbeans extends Connection implements NetbeansSocket {
             space = "";
         Object[] prm = {new Long(buf_id), request, new Long(this.seqno), space, args};
         String msg = MessageFormat.format(fmt, prm);
-        this.send(msg + '\n');
-        logger.finest(msg);
+
+        if (this.ready) {
+            this.send(msg + '\n');
+            logger.finest(msg);
+        }
+        else
+            logger.info("error in send_request: Netbeans session not ready");
     }
 
     /** Escape special characters in string.*/

@@ -18,9 +18,11 @@ import os
 import time
 import re
 import optparse
+import threading
 import asyncore
 import asynchat
 import socket
+import Queue
 import cStringIO
 import logging
 import ConfigParser
@@ -28,6 +30,7 @@ from logging import error, info, debug
 
 VERSION=0.2 # no spaces
 SECTION_NAME = 'vimoir properties'
+BUFFER_SIZE = 4096
 DEFAULTS = {
     'vimoir.netbeans.python.client': 'src.examples.phonemic.Phonemic',
     'vimoir.netbeans.host': '',
@@ -345,6 +348,8 @@ class Netbeans(asynchat.async_chat):
         self.set_terminator(u'\n')
         self.ibuff = []
         self.ready = False
+        self.queue = Queue.Queue(0)
+        self.outbuf = ''
         self.reply_fifo = asynchat.fifo()
         self._bset = BufferSet(self)
         self.seqno = 0
@@ -375,6 +380,7 @@ class Netbeans(asynchat.async_chat):
         if not self.connected:
             return
         asynchat.async_chat.close(self)
+        self.ready = False
         self.connected = False
 
     def collect_incoming_data(self, data):
@@ -443,7 +449,26 @@ class Netbeans(asynchat.async_chat):
         raise Error('received unexpected message: "%s"' % msg)
 
     def get_buffer(pathname):
-        return self._bset[pathname]
+        return self._bset.get(pathname)
+
+    def writable (self):
+        return (self.connected and (not self.queue.empty() or self.outbuf))
+
+    def initiate_send (self):
+        self.refill_buffer()
+        if not self.outbuf:
+            return
+        try:
+            n = self.send(self.outbuf[:BUFFER_SIZE])
+            if n:
+                self.outbuf = self.outbuf[n:]
+        except socket.error:
+            self.handle_error()
+
+    def refill_buffer (self):
+        while not self.queue.empty() and len(self.outbuf) < BUFFER_SIZE:
+            text = self.queue.get()
+            self.outbuf += text
 
     #-----------------------------------------------------------------------
     #   Events
@@ -457,7 +482,7 @@ class Netbeans(asynchat.async_chat):
         """A file was opened by the user."""
         if pathname:
             if os.path.isabs(pathname):
-                buf = self._bset[pathname]
+                buf = self._bset.get(pathname)
                 if buf.buf_id != buf_id:
                     if buf_id == 0:
                         buf.register(editFile=False)
@@ -539,11 +564,12 @@ class Netbeans(asynchat.async_chat):
         if not args:
             space = u''
         msg = fmt % (buf_id, request, self.seqno, space, args)
-        if self.connected:
-            self.push(msg.encode(self.encoding))
+
+        if self.ready:
+            self.queue.put(msg.encode(self.encoding))
             debug(msg.strip(u'\n'))
         else:
-            info('failed to send_request: not connected')
+            info('error in send_request: Netbeans session not ready')
 
     def quote(msg):
         """Quote 'msg' and escape special characters."""
@@ -619,13 +645,15 @@ class NetbeansBuffer(object):
 
     __repr__ = __str__
 
-class BufferSet(dict):
-    """The Vim buffer set is a dictionary of {pathname: NetbeansBuffer instance}.
+class BufferSet(object):
+    """A container for a list and map of buffers.
 
     Instance attributes:
         nbsock: netbeans.Netbeans
             the netbeans asynchat socket
-        buf_list: python list
+        buf_map: dict
+            a dictionary of {pathname: NetbeansBuffer instance}.
+        buf_list: list
             the list of NetbeansBuffer instances indexed by netbeans 'bufID'
 
     A NetbeansBuffer instance is never removed from BufferSet.
@@ -635,20 +663,22 @@ class BufferSet(dict):
     def __init__(self, nbsock):
         """Constructor."""
         self.nbsock = nbsock
+        self.buf_map = {}
         self.buf_list = []
+        self.lock = threading.Lock()
 
     def getbuf_at(self, buf_id):
         """Return the buffer at idx in list."""
-        assert isinstance(buf_id, int)
-        if buf_id <= 0 or buf_id > len(self.buf_list):
-            return None
-        return self.buf_list[buf_id - 1]
+        self.lock.acquire()
+        try:
+            if buf_id <= 0 or buf_id > len(self.buf_list):
+                return None
+            return self.buf_list[buf_id - 1]
+        finally:
+            self.lock.release()
 
-    #-----------------------------------------------------------------------
-    #   Dictionary methods
-    #-----------------------------------------------------------------------
-    def __getitem__(self, pathname):
-        """Get NetbeansBuffer with pathname as key, instantiate one when not found.
+    def get(self, pathname):
+        """Get NetbeansBuffer with pathname, instantiate one when not found.
 
         The pathname parameter must be an absolute path name.
 
@@ -656,40 +686,17 @@ class BufferSet(dict):
         if not os.path.isabs(pathname):
             raise ValueError(
                 '"pathname" is not an absolute path: %s' % pathname)
-        if not pathname in self:
-            # Netbeans buffer numbers start at one.
-            buf = NetbeansBuffer(pathname, len(self.buf_list) + 1, self.nbsock)
-            self.buf_list.append(buf)
-            dict.__setitem__(self, pathname, buf)
-        return dict.__getitem__(self, pathname)
 
-    def __setitem__(self, pathname, item):
-        """Mapped to __getitem__."""
-        self.__getitem__(pathname)
-
-    def setdefault(self, pathname, failobj=None):
-        """Mapped to __getitem__."""
-        return self.__getitem__(pathname)
-
-    def __delitem__(self, key):
-        """A key is never removed."""
-        pass
-
-    def popitem(self):
-        """A key is never removed."""
-        pass
-
-    def pop(self, key, *args):
-        """A key is never removed."""
-        pass
-
-    def update(self, dict=None, **kwargs):
-        """Not implemented."""
-        assert False, 'not implemented'
-
-    def copy(self):
-        """Not implemented."""
-        assert False, 'not implemented'
+        self.lock.acquire()
+        try:
+            if pathname not in self.buf_map:
+                # Netbeans buffer numbers start at one.
+                buf = NetbeansBuffer(pathname, len(self.buf_list) + 1, self.nbsock)
+                self.buf_map[pathname] = buf
+                self.buf_list.append(buf)
+            return self.buf_map[pathname]
+        finally:
+            self.lock.release()
 
 def main():
     formatter = optparse.IndentedHelpFormatter(max_help_position=30)

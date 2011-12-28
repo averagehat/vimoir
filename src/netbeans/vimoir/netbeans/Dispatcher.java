@@ -289,8 +289,7 @@ abstract class Dispatcher {
      * @param data  buffer holding the bytes to be written
      */
     void send(ByteBuffer data) throws IOException {
-        if (this.state.is_connected())
-            this.getSocketChannel().write(data);
+        this.getSocketChannel().write(data);
     }
 
     /**
@@ -526,7 +525,6 @@ class ConnectionState {
 
     boolean acceptable() { return (this.state == ACCEPTING); }
     boolean connectable() { return (this.state == CONNECTING); }
-    boolean is_connected() { return (this.state == CONNECTED); }
     boolean readable() { return (this.state == CONNECTED); }
     boolean writable() { return (this.state == CONNECTED); }
     boolean closed() { return (this.state == CLOSING); }

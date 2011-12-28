@@ -62,7 +62,7 @@ class Server extends Dispatcher {
     void handle_tick() {}
 
     void handle_accept(SocketChannel channel) throws IOException {
-        if (this.nbsock != null && this.nbsock.state.is_connected()) {
+        if (this.nbsock != null && this.nbsock.state.writable()) {
             channel.close();
             logger.info("rejecting connection from '"
                         + channel + "' netbeans already connected");
