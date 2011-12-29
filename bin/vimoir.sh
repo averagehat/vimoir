@@ -35,11 +35,9 @@ run()
     unset args[${#args[@]}-1]
 
     if [[ "${!#}" = "python" ]] ; then
-        unset args[${#args[@]}-1]
         python $pwd/netbeans.py --conf=conf "${args[@]}"
 
     elif [[ "${!#}" = "jython" ]] ; then
-        unset args[${#args[@]}-1]
         export LD_LIBRARY_PATH=$LINUXSPEAKJNI
         # mandatory parameter: path to phonemic.jar file
         jython $pwd/netbeans.py --conf=conf "${args[@]}"            \

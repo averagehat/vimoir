@@ -89,7 +89,7 @@ class Netbeans extends Connection implements NetbeansSocket {
     /** Process new line terminated netbeans message. */
     void found_terminator() {
         String msg = this.getBuff();
-        logger.finest(msg);
+        logger.finest(this.toString() + " " + msg);
 
         if (! this.ready) {
             try {
@@ -298,7 +298,7 @@ class Netbeans extends Connection implements NetbeansSocket {
 
         if (this.ready) {
             this.send(msg + '\n');
-            logger.finest(msg);
+            logger.finest(this.toString() + " " + msg);
         }
         else
             logger.info("error in send_request: Netbeans session not ready");

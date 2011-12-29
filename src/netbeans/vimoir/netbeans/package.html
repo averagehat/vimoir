@@ -1,6 +1,6 @@
 <body>
-Vimoir is a library that can be used to build Netbeans applications for Vim
-and that includes an example allowing to hear Vim.
+<p>Vimoir is a server and a library for building Netbeans applications interfaced
+with Vim.
 
 <p> Use the vimoir library to interface a java or a python application with Vim
 through the Netbeans protocol. The client application implements the vimoir
@@ -8,7 +8,8 @@ through the Netbeans protocol. The client application implements the vimoir
 events to methods. The vimoir library takes care of the details of the protocol
 such as registering buffers with a <i>bufID</i>, managing <i>seqno</i> command
 sequence numbers, instantiating the client class on each new connection request
-from Vim and managing the corresponding Netbeans socket connection.
+from a Vim instance and managing the corresponding concurrent Netbeans socket
+connections.
 
 <p> To develop a client, one must implement a class whose constructor signature
 has a single argument which is an instance of the {@link

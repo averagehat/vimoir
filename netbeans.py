@@ -295,7 +295,6 @@ class Server(asyncore.dispatcher):
     def __init__(self, host, port, props_file):
         asyncore.dispatcher.__init__(self)
         self.props_file = props_file
-        self.nbsock = None
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind_listen(host, port)
 
@@ -308,12 +307,6 @@ class Server(asyncore.dispatcher):
     def handle_accept(self):
         """Accept the connection from Vim."""
         conn, addr = self.socket.accept()
-        if self.nbsock and self.nbsock.connected:
-            conn.close()
-            info('rejecting connection from %s: netbeans already connected',
-                                                                    addr)
-            return
-
         # get the class to instantiate
         opts = load_properties(self.props_file)
         name = opts.get('vimoir.netbeans.python.client')
@@ -328,21 +321,22 @@ class Server(asyncore.dispatcher):
             error(e)
             sys.exit(1)
 
-        self.nbsock = Netbeans(self, opts)
-        client = clazz(self.nbsock)
-        self.nbsock.set_client(client)
+        nbsock = Netbeans(self, addr, opts)
+        client = clazz(nbsock)
+        nbsock.set_client(client)
         conn.setblocking(0)
-        self.nbsock.set_socket(conn)
-        self.nbsock.connected = True
+        nbsock.set_socket(conn)
+        nbsock.connected = True
         info('%s connected to %s', clazz.__name__, addr)
 
     def handle_tick(self):
         pass
 
 class Netbeans(asynchat.async_chat):
-    def __init__(self, server, opts):
+    def __init__(self, server, addr, opts):
         asynchat.async_chat.__init__(self)
         self.server = server
+        self.addr = '[remote=%s:%s]' % addr
         self.opts = opts
         self.client = None
         self.set_terminator(u'\n')
@@ -390,7 +384,7 @@ class Netbeans(asynchat.async_chat):
         """Process new line terminated netbeans message."""
         msg = u''.join(self.ibuff)
         self.ibuff = []
-        debug(msg)
+        debug('%s %s', self.addr, msg)
 
         if not self.ready:
             self.open_session(msg)
@@ -567,7 +561,7 @@ class Netbeans(asynchat.async_chat):
 
         if self.ready:
             self.queue.put(msg.encode(self.encoding))
-            debug(msg.strip(u'\n'))
+            debug('%s %s', self.addr, msg.strip(u'\n'))
         else:
             info('error in send_request: Netbeans session not ready')
 

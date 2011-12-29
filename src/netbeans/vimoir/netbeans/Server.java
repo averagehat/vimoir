@@ -28,7 +28,6 @@ import java.lang.reflect.Constructor;
  * Delegate an accepted connection to a new Connection.
  */
 class Server extends Dispatcher {
-    Netbeans nbsock = null;
 
     Server(String host, int port) throws IOException {
         super();
@@ -62,13 +61,6 @@ class Server extends Dispatcher {
     void handle_tick() {}
 
     void handle_accept(SocketChannel channel) throws IOException {
-        if (this.nbsock != null && this.nbsock.state.writable()) {
-            channel.close();
-            logger.info("rejecting connection from '"
-                        + channel + "' netbeans already connected");
-            return;
-        }
-
         // get the class to instantiate
         Properties props = new Properties();
         URL url = ClassLoader.getSystemResource("vimoir.properties");
@@ -79,22 +71,22 @@ class Server extends Dispatcher {
         }
         String name = props.getProperty("vimoir.netbeans.java.client",
                                                     "vimoir.examples.Phonemic");
-        this.nbsock = new Netbeans(this, props);
+        Netbeans nbsock = new Netbeans(this, props);
         NetbeansEventHandler client = null;
         try {
             Class clazz = Class.forName(name);
             Class[] types = { vimoir.netbeans.NetbeansSocket.class };
             Constructor constructor = clazz.getConstructor(types);
-            Object[] params = { this.nbsock };
+            Object[] params = { nbsock };
             client = (NetbeansEventHandler) constructor.newInstance(params);
         } catch (Exception e) {
             logger.severe(e.toString());
             System.exit(1);
         }
 
-        this.nbsock.set_client(client);
-        this.nbsock.selector = this.selector;
-        this.nbsock.setSocketChannel(channel);
+        nbsock.set_client(client);
+        nbsock.selector = this.selector;
+        nbsock.setSocketChannel(channel);
         logger.info("accepting: " + channel);
     }
 
