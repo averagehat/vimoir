@@ -28,6 +28,8 @@ public class NetbeansBuffer {
     public String pathname;
     /** True when the buffer has been registered with Netbeans. */
     public boolean registered = false;
+    /** The cursor position in the buffer as a byte offset. */
+    public int offset = 0;
     /** The line number of the cursor (first line is one). */
     public int lnum = 1;
     /** The column number of the cursor (in bytes, zero based). */
@@ -52,7 +54,7 @@ public class NetbeansBuffer {
             if (editFile)
                 this.nbsock.send_cmd(this, "editFile", this.nbsock.quote(this.pathname));
             this.nbsock.send_cmd(this, "putBufferNumber", this.nbsock.quote(this.pathname));
-            this.nbsock.send_cmd(this, "stopDocumentListen");
+            this.nbsock.send_cmd(this, "netbeansBuffer", "T");
             this.registered = true;
         }
     }
@@ -64,6 +66,6 @@ public class NetbeansBuffer {
 
     /** Return the string representation of the buffer. */
     public String toString() {
-        return this.get_basename() + ":" + this.lnum + ":" + this.col;
+        return this.get_basename() + ":" + this.lnum + "/" + this.col;
     }
 }

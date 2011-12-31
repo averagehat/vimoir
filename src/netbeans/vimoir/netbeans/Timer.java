@@ -39,7 +39,7 @@ abstract class Timer extends Dispatcher {
     }
 
     void initTimer() throws IOException {
-        // instantiate a fake SocketChannel to register the timer
+        // Instantiate a fake SocketChannel to register the timer.
         this.createSocket(false);
     }
 

@@ -56,16 +56,39 @@ class Phonemic(object):
     #-----------------------------------------------------------------------
 
     def event_startupDone(self):
-        self.speak_admin_msg('Phonemic is connected to Vim')
+        self.speak_admin_msg('Phonemic is connected to Vim.')
 
     def event_disconnect(self):
-        self.speak_admin_msg('Phonemic is disconnected from Vim')
+        self.speak_admin_msg('Phonemic is disconnected from Vim.')
 
     def event_fileOpened(self, buf):
-        self.speak_admin_msg('Opening the file %s' % buf.get_basename())
+        self.speak_admin_msg('Opening the file %s.' % buf.get_basename())
 
     def event_killed(self, buf):
-        self.speak_admin_msg('Closing the file %s' % buf.get_basename())
+        self.speak_admin_msg('Closing the file %s.' % buf.get_basename())
+
+    def event_version(self, version):
+        self.speak_admin_msg('Vim netbeans version is %s.' % version)
+
+    def event_balloonText(self, text):
+        self.speak_admin_msg(text)
+
+    def event_buttonRelease(self, buf, button):
+        self.speak_admin_msg('Button %d at line %d and column %d.'
+                                            % (button, buf.lnum, buf.col))
+
+    def event_keyCommand(self, buf, keyName):
+        self.speak_admin_msg(keyName)
+
+    def event_newDotAndMark(self, buf):
+        self.speak_admin_msg('Cursor offset at %d.' % buf.offset)
+
+    def event_remove(self, buf, length):
+        self.speak_admin_msg('%d bytes of text were removed at byte offset %d.'
+                                                        % (length, buf.offset))
+
+    def event_save(self, buf):
+        self.speak_admin_msg('Buffer %s has been saved.' % buf.get_basename())
 
     def event_tick(self):
         pass
@@ -77,7 +100,7 @@ class Phonemic(object):
     #   Commands
     #-----------------------------------------------------------------------
 
-    def default_cmd_processing(self, cmd, args, buf):
+    def default_cmd_processing(self, buf, cmd, args):
         """Handle nbkey commands not matched with a 'cmd_xxx' method."""
         info('nbkey: %s', (cmd, args, buf))
 

@@ -41,16 +41,7 @@
         </javadoc>
     </target>
 
-    <target name="process-readme" if="readme.exists">
-        <exec executable="/bin/sed" os="Linux" output="README">
-            <arg line="-e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ README"/>
-        </exec>
-    </target>
-
-    <target name="dist" depends="init,process-readme" description="Distribute vimoir">
-        <exec executable="/bin/sed" os="Linux" output="netbeans.py">
-            <arg line="-e s/^VERSION=[0-9]\.[0-9]\(.*\)$/VERSION=${vimoir.version}\1/ netbeans.py"/>
-        </exec>
+    <target name="dist" depends="init" description="Distribute vimoir">
         <property name="dist.name" value="${ant.project.name}-v${vimoir.version}"/>
         <property name="tar.dir" location="${dist.dir}/${dist.name}"/>
         <delete dir="${dist.dir}"/>
@@ -58,11 +49,23 @@
         <iterate target="dist"/>
     </target>
 
+    <target name="update-readme" if="readme.exists">
+        <exec executable="/bin/sed" os="Linux">
+            <arg line="--in-place -e s/-v[0-9]\.[0-9]/-v${vimoir.version}/ vimoir.wiki/ReadMe.wiki"/>
+        </exec>
+    </target>
+
+    <target name="update-version" depends="update-readme">
+        <exec executable="/bin/sed" os="Linux">
+            <arg line="--in-place -e s/^VERSION=[0-9]\.[0-9]\(.*\)$/VERSION=${vimoir.version}\1/ netbeans.py"/>
+        </exec>
+    </target>
+
     <target name="wiki" if="readme.exists">
         <copy todir="${tar.dir}/doc"><fileset dir="vimoir.wiki" includes="*.wiki"/></copy>
     </target>
 
-    <target name="archive" depends="dist,doc,wiki" description="Create the archives">
+    <target name="archive" depends="dist,update-version,doc,wiki" description="Create the archives">
         <copy todir="${tar.dir}/conf"><fileset dir="conf" includes="*.properties"/></copy>
         <copy todir="${tar.dir}/bin"><fileset dir="bin" includes="*.sh"/></copy>
         <copy todir="${tar.dir}/doc"><fileset dir="doc"/></copy>

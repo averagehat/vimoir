@@ -91,6 +91,42 @@ public class Phonemic implements NetbeansEventHandler {
         this.speak_admin_msg("Closing the file " + buf.get_basename());
     }
 
+    public void event_version(String version) {
+        this.speak_admin_msg("Vim netbeans version is " + version);
+    }
+
+    /**
+     * Report the text under the mouse pointer.
+     *
+     * <p> The text may be a single word or a part of the buffer selected in
+     * visual-mode.
+     */
+    public void event_balloonText(String text) {
+        this.speak_admin_msg(text);
+    }
+
+    public void event_buttonRelease(NetbeansBuffer buf, int button) {
+        this.speak_admin_msg("Button " + button +
+                " at line " + buf.lnum + " and column " + buf.col);
+    }
+
+    public void event_keyCommand(NetbeansBuffer buf, String keyName) {
+        this.speak_admin_msg(keyName);
+    }
+
+    public void event_newDotAndMark(NetbeansBuffer buf) {
+        this.speak_admin_msg("cursor offset at " + buf.offset);
+    }
+
+    public void event_remove(NetbeansBuffer buf, int length) {
+        this.speak_admin_msg(length
+            + " bytes of text were removed at byte offset " + buf.offset);
+    }
+
+    public void event_save(NetbeansBuffer buf) {
+        this.speak_admin_msg("Buffer " + buf.get_basename() + " has been saved.");
+    }
+
     public void event_error(String msg) {
         this.speak_admin_msg(msg);
     }
@@ -106,7 +142,7 @@ public class Phonemic implements NetbeansEventHandler {
      *
      * <p> Here we just log the event.
      */
-    public void default_cmd_processing(String keyName, String args, NetbeansBuffer buf) {
+    public void default_cmd_processing(NetbeansBuffer buf, String keyName, String args) {
         logger.info("nbkey [" + keyName + ":" + args + ":" + buf.toString() + "]");
     }
 

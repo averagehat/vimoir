@@ -94,7 +94,7 @@ abstract class Asynchat extends Dispatcher {
                 && (this.queue.size() != 0 || this.outbuf.remaining() != 0));
     }
 
-    void initiateSend() throws IOException {
+    void initiate_send() throws IOException {
         String str = null;
         while ((str = (String) this.queue.peek()) != null
                 && this.refill_buffer(str))
@@ -142,10 +142,10 @@ abstract class Asynchat extends Dispatcher {
 
     void handle_write() {
         try {
-            this.initiateSend();
+            this.initiate_send();
         } catch (IOException e) {
             logger.severe(e.toString());
-            this.handle_close();
+            this.close();
         }
     }
     void handle_read() {
@@ -165,7 +165,7 @@ abstract class Asynchat extends Dispatcher {
                 this.collect_incoming_data(str.substring(pos));
                 break;
             } else {
-                // don't report an empty string
+                // Don't report an empty string.
                 if (index > 0)
                     this.collect_incoming_data(str.substring(pos, index));
                 pos = index + this.termlen;

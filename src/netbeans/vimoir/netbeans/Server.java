@@ -61,7 +61,7 @@ class Server extends Dispatcher {
     void handle_tick() {}
 
     void handle_accept(SocketChannel channel) throws IOException {
-        // get the class to instantiate
+        // Get the class to instantiate.
         Properties props = new Properties();
         URL url = ClassLoader.getSystemResource("vimoir.properties");
         if (url != null) {

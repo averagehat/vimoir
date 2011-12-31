@@ -446,7 +446,8 @@ abstract class Dispatcher {
             /* Send the timer events. */
             Date now = new Date();
             if (now.getTime() - lastTime.getTime() >= user_interval) {
-                bugCount = 0; // reset the bug counter on a timer event
+                // Reset the bug counter on a timer event.
+                bugCount = 0;
                 lastTime = now;
                 it = selector.keys().iterator();
                 while (it.hasNext()) {

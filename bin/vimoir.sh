@@ -48,7 +48,7 @@ run()
         jarfiles=$PHONEMIC_DIR/phonemic.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans.jar
         jarfiles=$jarfiles:$pwd/lib/netbeans-examples.jar
-        java -cp $jarfiles:conf                                     \
+        java -enableassertions -cp $jarfiles:conf                   \
             -Djava.util.logging.config.file=conf/logging.properties \
             vimoir.netbeans.Netbeans "${args[@]}"
 

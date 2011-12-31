@@ -44,7 +44,7 @@ public interface NetbeansEventHandler {
      *
      * <p> A file was opened by the Vim user.
      *
-     * @param buf the buffer instance
+     * @param buf the buffer
      */
     public void event_fileOpened(NetbeansBuffer buf);
 
@@ -54,9 +54,78 @@ public interface NetbeansEventHandler {
      * <p> A file was deleted or wiped out by the Vim user and the buffer
      * annotations have been removed.  The buffer is not registered anymore.
      *
-     * @param buf the buffer instance
+     * @param buf the buffer
      */
     public void event_killed(NetbeansBuffer buf);
+
+    /**
+     * Process a <code>version</code> Netbeans event.
+     *
+     * <p> Report the version of the interface implementation.
+     *
+     * @param version of the Vim Netbeans protocol
+     */
+    public void event_version(String version);
+
+    /**
+     * Process a <code>balloonText</code> Netbeans event.
+     *
+     * <p> Report the text under the mouse pointer. The text may be a single
+     * word or a part of the buffer selected in visual-mode.
+     *
+     * @param text under the mouse pointer
+     */
+    public void event_balloonText(String text);
+
+    /**
+     * Process a <code>buttonRelease</code> Netbeans event.
+     *
+     * <p> Report which button was pressed and the mouse pointer location at
+     * the time of the release.
+     *
+     * @param buf the buffer
+     * @param button button number
+     */
+    public void event_buttonRelease(NetbeansBuffer buf, int button);
+
+    /**
+     * Process a <code>keyCommand</code> Netbeans event.
+     *
+     * <p> Report a special key being pressed with name 'keyName'.
+     *
+     * @param buf the buffer
+     * @param keyName the <code>nbkey</code> parameters
+     */
+    public void event_keyCommand(NetbeansBuffer buf, String keyName);
+
+    /**
+     * Process a <code>newDotAndMark</code> Netbeans event.
+     *
+     * <p> Report the cursor position as a byte offset.
+     *
+     * @param buf the buffer
+     */
+    public void event_newDotAndMark(NetbeansBuffer buf);
+
+    /**
+     * Process a <code>remove</code> Netbeans event.
+     *
+     * <p> <code>length</code> bytes of text were deleted in Vim at position
+     * <code>offset</code>.
+     *
+     * @param buf the buffer
+     * @param length the number of bytes that have been deleted
+     */
+    public void event_remove(NetbeansBuffer buf, int length);
+
+    /**
+     * Process a <code>save</code> Netbeans event.
+     *
+     * <p> The buffer has been saved and is now unmodified.
+     *
+     * @param buf the buffer
+     */
+    public void event_save(NetbeansBuffer buf);
 
     /**
      * Process a timer event.
@@ -83,9 +152,9 @@ public interface NetbeansEventHandler {
      * <code>cmd_keyName</code> method, <code>keyName</code> being the first
      * token of the Vim <code>:nbkey</code> command.
      *
+     * @param buf      the buffer
      * @param keyName  the first parameter of Vim <code>:nbkey</code> command
      * @param args     the remaining string in the <code>:nbkey</code> command
-     * @param buf      the buffer instance
      */
-    public void default_cmd_processing(String keyName, String args, NetbeansBuffer buf);
+    public void default_cmd_processing(NetbeansBuffer buf, String keyName, String args);
 }
