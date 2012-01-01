@@ -80,8 +80,9 @@ class Server extends Dispatcher {
             Object[] params = { nbsock };
             client = (NetbeansEventHandler) constructor.newInstance(params);
         } catch (Exception e) {
-            logger.severe(e.toString());
-            System.exit(1);
+            logger.severe("importing client class: " + e.toString());
+            channel.close();
+            return;
         }
 
         nbsock.set_client(client);

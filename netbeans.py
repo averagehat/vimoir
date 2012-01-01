@@ -332,8 +332,9 @@ class Server(asyncore.dispatcher):
         try:
             exec stmt
         except ImportError, e:
-            error(e)
-            sys.exit(1)
+            error('importing client class: %s', e)
+            conn.close()
+            return
 
         nbsock = Netbeans(self, addr, opts)
         client = clazz(nbsock)
@@ -387,9 +388,16 @@ class Netbeans(asynchat.async_chat):
     def close(self):
         if not self.connected:
             return
-        asynchat.async_chat.close(self)
-        self.ready = False
         self.connected = False
+        self.ready = False
+        asynchat.async_chat.close(self)
+
+        info('%s disconnected', self.addr)
+        if self.client:
+            try:
+                self.client.event_disconnect()
+            except Exception, e:
+                self.handle_error()
 
     def collect_incoming_data(self, data):
         self.ibuff.append(unicode(data, self.encoding))
@@ -400,6 +408,8 @@ class Netbeans(asynchat.async_chat):
         self.ibuff = []
         debug('%s %s', self.addr, msg)
 
+        if not self.connected:
+            return
         if not self.ready:
             self.open_session(msg)
             return
@@ -433,20 +443,28 @@ class Netbeans(asynchat.async_chat):
         if matchobj:
             password = matchobj.group(u'passwd')
             if password != self.opts.get('vimoir.netbeans.password'):
-                error('invalid password: "%s"' % password)
-                self.close
+                try:
+                    self.client.event_error(u'invalid password: "%s"'
+                                                            % password)
+                except Exception, e:
+                    self.handle_error()
+                self.close()
             return
         # '0:version=0 "2.3"'
         # '0:startupDone=0'
         else:
             is_event, buf_id, event, seqno, nbstring, arg_list = parse_msg(msg)
             if is_event:
-                if event == u"version":
-                    self.client.event_version(nbstring)
-                    return
-                elif event == u"startupDone":
-                    self.ready = True
-                    self.client.event_startupDone()
+                try:
+                    if event == u"version":
+                        self.client.event_version(nbstring)
+                        return
+                    elif event == u"startupDone":
+                        self.ready = True
+                        self.client.event_startupDone()
+                        return
+                except Exception, e:
+                    self.handle_error()
                     return
         raise asyncore.ExitNow('received unexpected message: "%s"' % msg)
 
@@ -472,12 +490,19 @@ class Netbeans(asynchat.async_chat):
             text = self.queue.get()
             self.outbuf += text
 
+    def log_info(self, message, type='info'):
+        """Override log_info to use 'logging' and log all as errors."""
+        error(message)
+
     #-----------------------------------------------------------------------
     #   Events
     #-----------------------------------------------------------------------
     def evt_balloonText(self, buf_id, nbstring, arg_list):
         """Report the text under the mouse pointer."""
-        self.client.event_balloonText(nbstring)
+        try:
+            self.client.event_balloonText(nbstring)
+        except Exception, e:
+            self.handle_error()
 
     def evt_buttonRelease(self, buf_id, nbstring, arg_list):
         """Report which button was pressed and the cursor location."""
@@ -485,11 +510,13 @@ class Netbeans(asynchat.async_chat):
         buf = self._bset.getbuf_at(buf_id)
         assert buf is not None, 'invalid bufId: "%d" in buttonRelease' % buf_id
         button, buf.lnum, buf.col = (int(x) for x in arg_list)
-        self.client.event_buttonRelease(buf, button)
+        try:
+            self.client.event_buttonRelease(buf, button)
+        except Exception, e:
+            self.handle_error()
 
     def evt_disconnect(self, buf_id, nbstring, arg_list):
         """Process a disconnect netbeans event."""
-        self.client.event_disconnect()
         self.close()
 
     def evt_fileOpened(self, buf_id, pathname, arg_list):
@@ -501,12 +528,18 @@ class Netbeans(asynchat.async_chat):
                                         'got fileOpened with wrong bufId')
             if buf_id == 0:
                 buf.register(editFile=False)
-            self.client.event_fileOpened(buf)
+            try:
+                self.client.event_fileOpened(buf)
+            except Exception, e:
+                self.handle_error()
         else:
-            self.client.event_error(
-                u'You cannot use netbeans on a "[No Name]" file.\n'
-                u'Please, edit a file.'
-                )
+            try:
+                self.client.event_error(
+                        u'You cannot use netbeans on a "[No Name]" file.\n'
+                        u'Please, edit a file.'
+                        )
+            except Exception, e:
+                self.handle_error()
 
     def evt_insert(self, buf_id, nbstring, arg_list):
         """XXX."""
@@ -515,7 +548,10 @@ class Netbeans(asynchat.async_chat):
         """Report a special key being pressed with name 'keyName'."""
         buf = self._bset.getbuf_at(buf_id)
         assert buf is not None, 'invalid bufId: "%d" in keyCommand' % buf_id
-        self.client.event_keyCommand(buf, nbstring)
+        try:
+            self.client.event_keyCommand(buf, nbstring)
+        except Exception, e:
+            self.handle_error()
 
     def evt_keyAtPos(self, buf_id, nbstring, arg_list):
         """Process a keyAtPos netbeans event."""
@@ -533,18 +569,24 @@ class Netbeans(asynchat.async_chat):
         cmd, args = (lambda a=u'', b=u'':
                             (a, b))(*nbstring.split(None, 1))
         try:
-            method = getattr(self.client, 'cmd_%s' % cmd)
-        except AttributeError:
-            self.client.default_cmd_processing(buf, cmd, args)
-        else:
-            method(args, buf)
+            try:
+                method = getattr(self.client, 'cmd_%s' % cmd)
+            except AttributeError:
+                self.client.default_cmd_processing(buf, cmd, args)
+            else:
+                method(args, buf)
+        except Exception, e:
+            self.handle_error()
 
     def evt_killed(self, buf_id, nbstring, arg_list):
         """A file was deleted or wiped out by the user."""
         buf = self._bset.getbuf_at(buf_id)
         assert buf is not None, 'invalid bufId: "%d" in killed' % buf_id
         buf.registered = False
-        self.client.event_killed(buf)
+        try:
+            self.client.event_killed(buf)
+        except Exception, e:
+            self.handle_error()
 
     def evt_newDotAndMark(self, buf_id, nbstring, arg_list):
         """Report the cursor position as a byte offset."""
@@ -552,7 +594,10 @@ class Netbeans(asynchat.async_chat):
         buf = self._bset.getbuf_at(buf_id)
         assert buf is not None, 'invalid bufId: "%d" in newDotAndMark' % buf_id
         buf.offset = int(arg_list[0])
-        self.client.event_newDotAndMark(buf)
+        try:
+            self.client.event_newDotAndMark(buf)
+        except Exception, e:
+            self.handle_error()
 
     def evt_remove(self, buf_id, nbstring, arg_list):
         """'length' bytes of text were deleted in Vim at position 'offset'."""
@@ -561,16 +606,25 @@ class Netbeans(asynchat.async_chat):
         assert buf is not None, 'invalid bufId: "%d" in remove' % buf_id
         buf.offset = int(arg_list[0])
         length = int(arg_list[1])
-        self.client.event_remove(buf, length)
+        try:
+            self.client.event_remove(buf, length)
+        except Exception, e:
+            self.handle_error()
 
     def evt_save(self, buf_id, nbstring, arg_list):
         """The buffer has been saved and is now unmodified."""
         buf = self._bset.getbuf_at(buf_id)
         assert buf is not None, 'invalid bufId: "%d" in save' % buf_id
-        self.client.event_save(buf)
+        try:
+            self.client.event_save(buf)
+        except Exception, e:
+            self.handle_error()
 
     def handle_tick(self):
-        self.client.event_tick()
+        try:
+            self.client.event_tick()
+        except Exception, e:
+            self.handle_error()
 
     #-----------------------------------------------------------------------
     #   Commands - Functions

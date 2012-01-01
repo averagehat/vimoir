@@ -82,8 +82,19 @@ class Netbeans extends Connection implements NetbeansSocket {
     }
 
     public void close() {
+        if (! this.connected())
+            return;
         super.close();
         this.ready = false;
+
+        logger.info(this.toString() + " disconnected");
+        if (this.client != null) {
+            try {
+                this.client.event_disconnect();
+            } catch (Throwable e) {
+                this.handle_error(e);
+            }
+        }
     }
 
     /** Process new line terminated netbeans message. */
@@ -91,6 +102,8 @@ class Netbeans extends Connection implements NetbeansSocket {
         String msg = this.getBuff();
         logger.finest(this.toString() + " " + msg);
 
+        if (! this.connected())
+            return;
         if (! this.ready) {
             try {
                 this.open_session(msg);
@@ -146,7 +159,11 @@ class Netbeans extends Connection implements NetbeansSocket {
             String password = matcher.group(1);
             String expected = this.props.getProperty("vimoir.netbeans.password", "changeme");
             if (! expected.equals(password)) {
-                logger.severe("invalid password: " + password);
+                try {
+                    this.client.event_error("invalid password: " + password);
+                } catch (Throwable e) {
+                    this.handle_error(e);
+                }
                 this.close();
             }
             return;
@@ -155,13 +172,18 @@ class Netbeans extends Connection implements NetbeansSocket {
         } else {
             Parser parsed = new Parser(msg);
             if (parsed.is_event) {
-                if (parsed.event.equals("version")) {
-                    this.client.event_version(parsed.nbstring);
-                    return;
-                }
-                else if (parsed.event.equals("startupDone")) {
-                    this.ready = true;
-                    this.client.event_startupDone();
+                try {
+                    if (parsed.event.equals("version")) {
+                        this.client.event_version(parsed.nbstring);
+                        return;
+                    }
+                    else if (parsed.event.equals("startupDone")) {
+                        this.ready = true;
+                        this.client.event_startupDone();
+                        return;
+                    }
+                } catch (Throwable e) {
+                    this.handle_error(e);
                     return;
                 }
             }
@@ -173,12 +195,21 @@ class Netbeans extends Connection implements NetbeansSocket {
         return this.bset.get(pathname);
     }
 
+    /** Override log_info to use the logger. */
+    void log_info(String message) {
+        logger.severe(message);
+    }
+
     //-----------------------------------------------------------------------
     //  Events
     //-----------------------------------------------------------------------
     /** Report the text under the mouse pointer. */
     void evt_balloonText(Parser parsed) {
-        this.client.event_balloonText(parsed.nbstring);
+        try {
+            this.client.event_balloonText(parsed.nbstring);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** Report which button was pressed and the cursor location. */
@@ -189,12 +220,15 @@ class Netbeans extends Connection implements NetbeansSocket {
         int button = Integer.parseInt(parsed.arg_list[0]);
         buf.lnum = Integer.parseInt(parsed.arg_list[1]);
         buf.col = Integer.parseInt(parsed.arg_list[2]);
-        this.client.event_buttonRelease(buf, button);
+        try {
+            this.client.event_buttonRelease(buf, button);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** Process a disconnect netbeans event. */
     void evt_disconnect(Parser parsed) {
-        this.client.event_disconnect();
         this.close();
     }
 
@@ -214,19 +248,31 @@ class Netbeans extends Connection implements NetbeansSocket {
                     || parsed.buf_id == 0) : "got fileOpened with wrong bufId";
             if (parsed.buf_id == 0)
                 buf.register(false);
-            this.client.event_fileOpened(buf);
+            try {
+                this.client.event_fileOpened(buf);
+            } catch (Throwable e) {
+                this.handle_error(e);
+            }
         }
         else
-            this.client.event_error(
-                "You cannot use netbeans on a '[No Name]' file.\n"
-                + "Please, edit a file.");
+            try {
+                this.client.event_error(
+                    "You cannot use netbeans on a '[No Name]' file.\n"
+                    + "Please, edit a file.");
+            } catch (Throwable e) {
+                this.handle_error(e);
+            }
     }
 
     /** Report a special key being pressed with name 'keyName'. */
     void evt_keyCommand(Parser parsed) {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in keyCommand";
-        this.client.event_keyCommand(buf, parsed.nbstring);
+        try {
+            this.client.event_keyCommand(buf, parsed.nbstring);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** Process a keyAtPos netbeans event. */
@@ -258,7 +304,11 @@ class Netbeans extends Connection implements NetbeansSocket {
             method = this.client.getClass().getDeclaredMethod(
                                             cmd, parameterTypes);
         } catch (NoSuchMethodException e) {
-            this.client.default_cmd_processing(buf, splitted[0], args);
+            try {
+                this.client.default_cmd_processing(buf, splitted[0], args);
+            } catch (Exception exception) {
+                this.handle_error(exception);
+            }
             return;
         }
         Exception exception = null;
@@ -273,9 +323,7 @@ class Netbeans extends Connection implements NetbeansSocket {
             Throwable cause = exception.getCause();
             if (cause == null)
                 cause = exception;
-            logger.severe(cause.toString());
-            cause.printStackTrace();
-            System.exit(1);
+            this.handle_error(cause);
         }
     }
 
@@ -284,7 +332,11 @@ class Netbeans extends Connection implements NetbeansSocket {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in killed";
         buf.registered = false;
-        this.client.event_killed(buf);
+        try {
+            this.client.event_killed(buf);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** Report the cursor position as a byte offset. */
@@ -293,7 +345,11 @@ class Netbeans extends Connection implements NetbeansSocket {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in newDotAndMark";
         buf.offset = Integer.parseInt(parsed.arg_list[0]);
-        this.client.event_newDotAndMark(buf);
+        try {
+            this.client.event_newDotAndMark(buf);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** 'length' bytes of text were deleted in Vim at position 'offset'. */
@@ -303,18 +359,30 @@ class Netbeans extends Connection implements NetbeansSocket {
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in remove";
         buf.offset = Integer.parseInt(parsed.arg_list[0]);
         int length = Integer.parseInt(parsed.arg_list[1]);
-        this.client.event_remove(buf, length);
+        try {
+            this.client.event_remove(buf, length);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** The buffer has been saved and is now unmodified. */
     void evt_save(Parser parsed) {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in save";
-        this.client.event_save(buf);
+        try {
+            this.client.event_save(buf);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     void handle_tick() {
-        this.client.event_tick();
+        try {
+            this.client.event_tick();
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     //-----------------------------------------------------------------------

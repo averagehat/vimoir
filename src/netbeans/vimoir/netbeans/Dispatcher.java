@@ -368,6 +368,38 @@ abstract class Dispatcher {
         }
     }
 
+    void log_info(String message) {
+        System.err.println(message);
+    }
+
+    /** Log the exception and the back trace, and close the socket. */
+    void handle_error(Throwable e) {
+        StackTraceElement[] stack = e.getStackTrace();
+        String tbinfo = "";
+        for (int i = 0; i < stack.length; i++) {
+            if (! tbinfo.equals(""))
+                tbinfo += " ";
+            StackTraceElement elem = stack[i];
+            tbinfo += "[";
+            tbinfo += elem.getFileName();
+            tbinfo += "|";
+            tbinfo += elem.getMethodName();
+            tbinfo += "|";
+            tbinfo += elem.getLineNumber();
+            tbinfo += "]";
+        }
+        String message = "uncaptured exception, closing channel ";
+        message += this.toString();
+        message += " (";
+        message += e.toString();
+        message += " ";
+        message += tbinfo;
+        message += ")";
+
+        this.log_info(message);
+        this.close();
+    }
+
     void handle_tick_event() { this.handle_tick(); }
 
     public String toString() {
