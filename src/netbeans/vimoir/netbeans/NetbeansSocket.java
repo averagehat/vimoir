@@ -43,6 +43,15 @@ public interface NetbeansSocket {
     /**
      * Split a string including quoted parts.
      *
+     * <p> For example, splitting the string:
+     * <pre>
+     *      "\"a c\" b v \"this \\"is\\" foobar argument\" Y"
+     * </pre>
+     * returns the String array:
+     * <pre>
+     *      { "a c", "b", "v", "this \"is\" foobar argument", "Y" }
+     * </pre>
+     *
      * @param  text the string to split
      * @return the list of whitespace separated tokens from <code>text</code>,
      * handling double quoted substrings as a token. The '\' escaping character

@@ -95,12 +95,6 @@ public class Phonemic implements NetbeansEventHandler {
         this.speak_admin_msg("Vim netbeans version is " + version);
     }
 
-    /**
-     * Report the text under the mouse pointer.
-     *
-     * <p> The text may be a single word or a part of the buffer selected in
-     * visual-mode.
-     */
     public void event_balloonText(String text) {
         this.speak_admin_msg(text);
     }
@@ -116,6 +110,11 @@ public class Phonemic implements NetbeansEventHandler {
 
     public void event_newDotAndMark(NetbeansBuffer buf) {
         this.speak_admin_msg("cursor offset at " + buf.offset);
+    }
+
+    public void event_insert(NetbeansBuffer buf, String text) {
+        this.speak_admin_msg("The following text was inserted"
+                        + " at byte offset " + buf.offset + ": " + text);
     }
 
     public void event_remove(NetbeansBuffer buf, int length) {
@@ -138,7 +137,7 @@ public class Phonemic implements NetbeansEventHandler {
     //-----------------------------------------------------------------------
 
     /**
-     * Handle nbkey commands not matched with a "cmd_keyName" method.
+     * Handle nbkey commands not matched with a "cmd_&lt;keyName&gt;()" method.
      *
      * <p> Here we just log the event.
      */
@@ -150,15 +149,15 @@ public class Phonemic implements NetbeansEventHandler {
      * This method speaks <i>blahblahblah</i> after a <code>:nbkey speak
      * blahblahblah</code> Vim command.
      *
-     * @param args     the remaining string in the <code>:nbkey</code> command
      * @param buf      the buffer instance
+     * @param args     the remaining string in the <code>:nbkey</code> command
      */
-    public void cmd_speak(String args, NetbeansBuffer buf) {
+    public void cmd_speak(NetbeansBuffer buf, String args) {
         this.speak(args);
     }
 
     /** Terminate the server. */
-    public void cmd_quit(String args, NetbeansBuffer buf) {
+    public void cmd_quit(NetbeansBuffer buf, String args) {
         this.nbsock.terminate_server();
     }
 

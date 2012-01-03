@@ -264,6 +264,19 @@ class Netbeans extends Connection implements NetbeansSocket {
             }
     }
 
+    /** Text 'text' has been inserted in Vim at byte position 'offset'. */
+    void evt_insert(Parser parsed) {
+        assert parsed.arg_list.length == 1 : "invalid format in insert event";
+        NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
+        assert buf != null : "invalid bufId: " + parsed.buf_id + " in insert";
+        buf.offset = Integer.parseInt(parsed.arg_list[0]);
+        try {
+            this.client.event_insert(buf, parsed.nbstring);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
+    }
+
     /** Report a special key being pressed with name 'keyName'. */
     void evt_keyCommand(Parser parsed) {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
@@ -296,8 +309,8 @@ class Netbeans extends Connection implements NetbeansSocket {
         String args = "";
         if (len == 2)
             args = splitted[1];
-        Class[] parameterTypes = { args.getClass(), buf.getClass() };
-        Object[] parameters = { args, buf };
+        Class[] parameterTypes = { buf.getClass(), args.getClass() };
+        Object[] parameters = { buf, args };
         String cmd = "cmd_" + splitted[0];
         Method method = null;
         try {
@@ -580,6 +593,18 @@ class Netbeans extends Connection implements NetbeansSocket {
                     throw new NetbeansException("discarding invalid netbeans message: " + msg);
             }
 
+            // The quoted string is last in an 'insert' event.
+            if (this.event.equals("insert")) {
+                if (args.length() == 0)
+                    throw new NetbeansException("discarding invalid netbeans message: " + msg);
+                int idx = args.indexOf(' ');
+                if (idx == -1)
+                    throw new NetbeansException("discarding invalid netbeans message: " + msg);
+                String[] list = { args.substring(0, idx) };
+                this.arg_list = list; // hmmmm java... ;-)
+                args = args.substring(idx + 1);
+            }
+
             // a netbeans string
             int end = -1;
             if (args.length() != 0 && args.charAt(0) == '"') {
@@ -589,14 +614,16 @@ class Netbeans extends Connection implements NetbeansSocket {
                     // Do not unquote nbkey parameter twice since vim already
                     // parses function parameters as strings (see :help
                     // expr-quote).
-                    if (! this.event.equals("keyAtPos")) {
+                    if (! (this.event.equals("keyAtPos") || this.event.equals("keyCommand"))) {
                         this.nbstring = unquote(this.nbstring);
                     }
                 }
                 else
                     end = -1;
             }
-            this.arg_list = args.substring(end+1).trim().split("\\s+");
+
+            if (! this.event.equals("insert"))
+                this.arg_list = args.substring(end+1).trim().split("\\s+");
         }
     }
 

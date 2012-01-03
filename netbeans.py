@@ -91,60 +91,6 @@ def evt_ignore(buf_id, msg, arg_list):
     """Ignore not implemented received events."""
     pass
 
-def parse_msg(msg):
-    """Parse a received netbeans message.
-
-    Return the tuple:
-        is_event: boolean
-            True: an event - False: a reply
-        buf_id: int
-            netbeans buffer number
-        event: str
-            event name
-        seqno: int
-            netbeans sequence number
-        nbstring: str
-            the netbeans string
-        arg_list: list
-            list of remaining args after the netbeans string
-
-    """
-    matchobj = re_event.match(msg)
-    if matchobj:
-        # an event
-        bufid_name = matchobj.group(u'buf_id')
-        event = matchobj.group(u'event')
-    else:
-        # a reply
-        bufid_name = u'0'
-        event = u''
-        matchobj = re_response.match(msg)
-    if not matchobj:
-        raise asyncore.ExitNow('invalid netbeans message: "%s"' % msg)
-
-    seqno = matchobj.group(u'seqno')
-    args = matchobj.group(u'args').strip()
-    buf_id = int(bufid_name)
-    seqno = int(seqno)
-
-    # a netbeans string
-    nbstring = u''
-    if args and args[0] == u"\"":
-        end = args.rfind(u"\"")
-        if end != -1 and end != 0:
-            nbstring = args[1:end]
-            # Do not unquote nbkey parameter twice since vim already parses
-            # function parameters as strings (see :help expr-quote).
-            if event != u'keyAtPos':
-                nbstring = unquote(nbstring)
-        else:
-            end = -1
-    else:
-        end = -1
-    arg_list = args[end+1:].split()
-
-    return (matchobj.re is re_event), buf_id, event, seqno, nbstring, arg_list
-
 def setup_logger(debug):
     """Setup the logger."""
     fmt = logging.Formatter('%(levelname)-7s %(message)s')
@@ -171,6 +117,15 @@ def load_properties(filename):
     except ConfigParser.ParsingError, e:
         error(e)
     return opts
+
+def check_bufID(evt_method):
+    """Decorator to check the bufID in a Netbeans event methods."""
+    def _decorator(self, parsed):
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        assert buf is not None, ('invalid bufId "%d" at %s'
+                                % (parsed.buf_id, evt_method.func_name))
+        return evt_method(self, parsed)
+    return _decorator
 
 class RawConfigParser(ConfigParser.RawConfigParser):
     """A RawConfigParser subclass with a getter and no section parameter."""
@@ -262,6 +217,9 @@ class NetbeansClient(object):
         pass
 
     def event_newDotAndMark(self, buf):
+        pass
+
+    def event_insert(self, buf, text):
         pass
 
     def event_remove(self, buf, length):
@@ -414,11 +372,11 @@ class Netbeans(asynchat.async_chat):
             self.open_session(msg)
             return
 
-        is_event, buf_id, event, seqno, nbstring, arg_list = parse_msg(msg)
-        if is_event:
-            evt_handler = getattr(self, "evt_%s" % event, evt_ignore)
+        parsed = Parser(msg)
+        if parsed.is_event:
+            evt_handler = getattr(self, "evt_%s" % parsed.event, evt_ignore)
             try:
-                evt_handler(buf_id, nbstring, arg_list)
+                evt_handler(parsed)
             except Exception, e:
                 type, value, traceback = sys.exc_info()
                 raise asyncore.ExitNow, e, traceback
@@ -426,15 +384,15 @@ class Netbeans(asynchat.async_chat):
         # A function reply: process the reply.
         else:
             # Vim may send multiple replies for one function request.
-            if seqno == self.last_seqno:
+            if parsed.seqno == self.last_seqno:
                 return
 
             if self.reply_fifo.is_empty():
                 raise asyncore.ExitNow(
                         'got a reply with no matching function request')
             n, reply = self.reply_fifo.pop()
-            reply(seqno, nbstring, arg_list)
-            self.last_seqno = seqno
+            reply(parsed.seqno, parsed.nbstring, parsed.arg_list)
+            self.last_seqno = parsed.seqno
 
     def open_session(self, msg):
         """Process initial netbeans messages."""
@@ -453,13 +411,13 @@ class Netbeans(asynchat.async_chat):
         # '0:version=0 "2.3"'
         # '0:startupDone=0'
         else:
-            is_event, buf_id, event, seqno, nbstring, arg_list = parse_msg(msg)
-            if is_event:
+            parsed = Parser(msg)
+            if parsed.is_event:
                 try:
-                    if event == u"version":
-                        self.client.event_version(nbstring)
+                    if parsed.event == u"version":
+                        self.client.event_version(parsed.nbstring)
                         return
-                    elif event == u"startupDone":
+                    elif parsed.event == u"startupDone":
                         self.ready = True
                         self.client.event_startupDone()
                         return
@@ -497,36 +455,37 @@ class Netbeans(asynchat.async_chat):
     #-----------------------------------------------------------------------
     #   Events
     #-----------------------------------------------------------------------
-    def evt_balloonText(self, buf_id, nbstring, arg_list):
+    def evt_balloonText(self, parsed):
         """Report the text under the mouse pointer."""
         try:
-            self.client.event_balloonText(nbstring)
+            self.client.event_balloonText(parsed.nbstring)
         except Exception, e:
             self.handle_error()
 
-    def evt_buttonRelease(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_buttonRelease(self, parsed):
         """Report which button was pressed and the cursor location."""
-        assert len(arg_list) == 3, 'invalid format in buttonRelease event'
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in buttonRelease' % buf_id
-        button, buf.lnum, buf.col = (int(x) for x in arg_list)
+        assert len(parsed.arg_list) == 3, 'invalid format in buttonRelease event'
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        button, buf.lnum, buf.col = (int(x) for x in parsed.arg_list)
         try:
             self.client.event_buttonRelease(buf, button)
         except Exception, e:
             self.handle_error()
 
-    def evt_disconnect(self, buf_id, nbstring, arg_list):
+    def evt_disconnect(self, parsed):
         """Process a disconnect netbeans event."""
         self.close()
 
-    def evt_fileOpened(self, buf_id, pathname, arg_list):
+    def evt_fileOpened(self, parsed):
         """A file was opened by the user."""
+        pathname = parsed.nbstring
         if pathname:
             assert os.path.isabs(pathname), 'absolute pathname required'
             buf = self._bset.get(pathname)
-            assert (buf.buf_id == buf_id or buf_id == 0,
+            assert (buf.buf_id == parsed.buf_id or parsed.buf_id == 0,
                                         'got fileOpened with wrong bufId')
-            if buf_id == 0:
+            if parsed.buf_id == 0:
                 buf.register(editFile=False)
             try:
                 self.client.event_fileOpened(buf)
@@ -541,80 +500,88 @@ class Netbeans(asynchat.async_chat):
             except Exception, e:
                 self.handle_error()
 
-    def evt_insert(self, buf_id, nbstring, arg_list):
-        """XXX."""
-
-    def evt_keyCommand(self, buf_id, nbstring, arg_list):
-        """Report a special key being pressed with name 'keyName'."""
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in keyCommand' % buf_id
+    @check_bufID
+    def evt_insert(self, parsed):
+        """Text 'text' has been inserted in Vim at byte position 'offset'."""
+        assert len(parsed.arg_list) == 1, 'invalid format in insert event'
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        buf.offset = int(parsed.arg_list[0])
         try:
-            self.client.event_keyCommand(buf, nbstring)
+            self.client.event_insert(buf, parsed.nbstring)
         except Exception, e:
             self.handle_error()
 
-    def evt_keyAtPos(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_keyCommand(self, parsed):
+        """Report a special key being pressed with name 'keyName'."""
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        try:
+            self.client.event_keyCommand(buf, parsed.nbstring)
+        except Exception, e:
+            self.handle_error()
+
+    @check_bufID
+    def evt_keyAtPos(self, parsed):
         """Process a keyAtPos netbeans event."""
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in keyAtPos' % buf_id
-        assert len(arg_list) == 2, 'invalid arg in keyAtPos'
-        if not nbstring:
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        assert len(parsed.arg_list) == 2, 'invalid arg in keyAtPos'
+        if not parsed.nbstring:
             debug('empty string in keyAtPos')
             return
 
-        matchobj = re_lnumcol.match(arg_list[1])
-        assert matchobj, 'invalid lnum/col: %s' % arg_list[1]
+        matchobj = re_lnumcol.match(parsed.arg_list[1])
+        assert matchobj, 'invalid lnum/col: %s' % parsed.arg_list[1]
         buf.lnum = int(matchobj.group(u'lnum'))
         buf.col = int(matchobj.group(u'col'))
         cmd, args = (lambda a=u'', b=u'':
-                            (a, b))(*nbstring.split(None, 1))
+                            (a, b))(*parsed.nbstring.split(None, 1))
         try:
             try:
                 method = getattr(self.client, 'cmd_%s' % cmd)
             except AttributeError:
                 self.client.default_cmd_processing(buf, cmd, args)
             else:
-                method(args, buf)
+                method(buf, args)
         except Exception, e:
             self.handle_error()
 
-    def evt_killed(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_killed(self, parsed):
         """A file was deleted or wiped out by the user."""
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in killed' % buf_id
+        buf = self._bset.getbuf_at(parsed.buf_id)
         buf.registered = False
         try:
             self.client.event_killed(buf)
         except Exception, e:
             self.handle_error()
 
-    def evt_newDotAndMark(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_newDotAndMark(self, parsed):
         """Report the cursor position as a byte offset."""
-        assert len(arg_list) == 2, 'invalid format in newDotAndMark event'
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in newDotAndMark' % buf_id
-        buf.offset = int(arg_list[0])
+        assert len(parsed.arg_list) == 2, 'invalid format in newDotAndMark event'
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        buf.offset = int(parsed.arg_list[0])
         try:
             self.client.event_newDotAndMark(buf)
         except Exception, e:
             self.handle_error()
 
-    def evt_remove(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_remove(self, parsed):
         """'length' bytes of text were deleted in Vim at position 'offset'."""
-        assert len(arg_list) == 2, 'invalid format in remove event'
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in remove' % buf_id
-        buf.offset = int(arg_list[0])
-        length = int(arg_list[1])
+        assert len(parsed.arg_list) == 2, 'invalid format in remove event'
+        buf = self._bset.getbuf_at(parsed.buf_id)
+        buf.offset = int(parsed.arg_list[0])
+        length = int(parsed.arg_list[1])
         try:
             self.client.event_remove(buf, length)
         except Exception, e:
             self.handle_error()
 
-    def evt_save(self, buf_id, nbstring, arg_list):
+    @check_bufID
+    def evt_save(self, parsed):
         """The buffer has been saved and is now unmodified."""
-        buf = self._bset.getbuf_at(buf_id)
-        assert buf is not None, 'invalid bufId: "%d" in save' % buf_id
+        buf = self._bset.getbuf_at(parsed.buf_id)
         try:
             self.client.event_save(buf)
         except Exception, e:
@@ -681,6 +648,73 @@ class Netbeans(asynchat.async_chat):
         match = re_token_split.findall(msg)
         return [unquote(x) or y for x, y in match]
     split_quoted_string = staticmethod(split_quoted_string)
+
+class Parser(object):
+    """Parse a received netbeans message.
+
+    Instance attributes:
+        is_event: boolean
+            True: an event - False: a reply
+        buf_id: int
+            netbeans buffer number
+        event: str
+            event name
+        seqno: int
+            netbeans sequence number
+        nbstring: str
+            the netbeans string
+        arg_list: list
+            list of remaining args after the netbeans string
+
+    """
+
+    def __init__(self, msg):
+        matchobj = re_event.match(msg)
+        if matchobj:
+            # an event
+            bufid_name = matchobj.group(u'buf_id')
+            self.event = matchobj.group(u'event')
+        else:
+            # a reply
+            bufid_name = u'0'
+            self.event = u''
+            matchobj = re_response.match(msg)
+        if not matchobj:
+            raise asyncore.ExitNow('invalid netbeans message: "%s"' % msg)
+        self.is_event = (matchobj.re is re_event)
+
+        seqno = matchobj.group(u'seqno')
+        args = matchobj.group(u'args').strip()
+        self.buf_id = int(bufid_name)
+        self.seqno = int(seqno)
+
+        # The quoted string is last in an 'insert' event.
+        if self.event == u'insert':
+            if not args:
+                raise asyncore.ExitNow('invalid netbeans message: "%s"' % msg)
+            idx = args.find(u' ')
+            if idx == -1:
+                raise asyncore.ExitNow('invalid netbeans message: "%s"' % msg)
+            self.arg_list = [args[:idx]]
+            args = args[idx+1:]
+
+        # a netbeans string
+        self.nbstring = u''
+        if args and args[0] == u"\"":
+            end = args.rfind(u"\"")
+            if end != -1 and end != 0:
+                self.nbstring = args[1:end]
+                # Do not unquote nbkey parameter twice since vim already parses
+                # function parameters as strings (see :help expr-quote).
+                if not (self.event == u'keyAtPos' or self.event == u'keyCommand'):
+                    self.nbstring = unquote(self.nbstring)
+            else:
+                end = -1
+        else:
+            end = -1
+
+        if self.event != u'insert':
+            self.arg_list = args[end+1:].split()
 
 class NetbeansBuffer(object):
     """A Vim buffer.

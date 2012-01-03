@@ -83,6 +83,10 @@ class Phonemic(object):
     def event_newDotAndMark(self, buf):
         self.speak_admin_msg('Cursor offset at %d.' % buf.offset)
 
+    def event_insert(self, buf, text):
+        self.speak_admin_msg('The following text was inserted'
+                                ' at byte offset %d: %s.' % (buf.offset, text))
+
     def event_remove(self, buf, length):
         self.speak_admin_msg('%d bytes of text were removed at byte offset %d.'
                                                         % (length, buf.offset))
@@ -104,10 +108,10 @@ class Phonemic(object):
         """Handle nbkey commands not matched with a 'cmd_xxx' method."""
         info('nbkey: %s', (cmd, args, buf))
 
-    def cmd_speak(self, args, buf):
+    def cmd_speak(self, buf, args):
         self.speak(args)
 
-    def cmd_quit(self, args, buf):
+    def cmd_quit(self, buf, args):
         """Terminate the server."""
         self.nbsock.terminate_server()
 

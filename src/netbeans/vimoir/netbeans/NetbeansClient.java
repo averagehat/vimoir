@@ -55,6 +55,8 @@ public class NetbeansClient implements NetbeansEventHandler {
 
     public void event_newDotAndMark(NetbeansBuffer buf) {}
 
+    public void event_insert(NetbeansBuffer buf, String text) {}
+
     public void event_remove(NetbeansBuffer buf, int length) {}
 
     public void event_save(NetbeansBuffer buf) {}

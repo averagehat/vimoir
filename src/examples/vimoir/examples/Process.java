@@ -28,15 +28,19 @@ import vimoir.netbeans.NetbeansBuffer;
 /**
  * Run a process from a Vim <code>:nbkey run</code> command in a worker thread.
  *
- * <p>This class extends {@link vimoir.netbeans.NetbeansClient} so as to
- * implement only the methods it is interested in. The process is run in a
- * thread so as not to block I/O on the Netbeans socket. On the process
- * termination, the process output from stdout and stderr is displayed in a Vim
- * balloon.
+ * The process is run in a thread so as not to block I/O on the Netbeans
+ * socket. On the process termination, the process stdout and stderr output is
+ * displayed in a Vim balloon.
+ *
  * <p>For example to run a python command that sleeps 2 seconds and prints
  * 'Ok', run in Vim:
  *
- * <p><code>:nbkey run python -c "import time; time.sleep(2); print \"Ok\""</code>
+ * <pre>
+ *      :nbkey run python -c "import time; time.sleep(2); print \"Ok\""
+ * </pre>
+ *
+ * <p>This class extends {@link vimoir.netbeans.NetbeansClient} so as to
+ * implement only the methods it is interested in.
  */
 public class Process extends NetbeansClient implements NetbeansEventHandler {
 
@@ -52,10 +56,10 @@ public class Process extends NetbeansClient implements NetbeansEventHandler {
     /**
      * Run a process in a worker thread.
      *
-     * @param args  the remaining string of the <code>:nbkey run</code> command
      * @param buf   the buffer instance (not used here)
+     * @param args  the remaining string of the <code>:nbkey run</code> command
      */
-    public void cmd_run(final String args, NetbeansBuffer buf) {
+    public void cmd_run(NetbeansBuffer buf, final String args) {
         final String[] command = this.nbsock.split_quoted_string(args);
         Thread thread = new Thread(new Runnable() {
             public void run() {

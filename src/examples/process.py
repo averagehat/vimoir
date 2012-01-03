@@ -31,7 +31,7 @@ class Process(NetbeansClient):
 
     """
 
-    def cmd_run(self, args, buf):
+    def cmd_run(self, buf, args):
         """Process a keyAtPos event with the 'run' keyName."""
         class Worker(object):
             def __init__(self):

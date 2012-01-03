@@ -81,7 +81,7 @@ public interface NetbeansEventHandler {
      * Process a <code>buttonRelease</code> Netbeans event.
      *
      * <p> Report which button was pressed and the mouse pointer location at
-     * the time of the release.
+     * the time of the release as the buffer <code>offset</code>.
      *
      * @param buf the buffer
      * @param button button number
@@ -101,11 +101,22 @@ public interface NetbeansEventHandler {
     /**
      * Process a <code>newDotAndMark</code> Netbeans event.
      *
-     * <p> Report the cursor position as a byte offset.
+     * <p> Report the cursor position as the buffer <code>offset</code>.
      *
      * @param buf the buffer
      */
     public void event_newDotAndMark(NetbeansBuffer buf);
+
+    /**
+     * Process an <code>insert</code> Netbeans event.
+     *
+     * <p> Text <code>text</code> has been inserted in Vim at byte position
+     * <code>offset</code>.
+     *
+     * @param buf the buffer
+     * @param text that has been inserted
+     */
+    public void event_insert(NetbeansBuffer buf, String text);
 
     /**
      * Process a <code>remove</code> Netbeans event.
@@ -149,8 +160,8 @@ public interface NetbeansEventHandler {
      *
      * <p>The Netbeans socket falls back to invoking this method when the
      * NetbeansEventHandler object does not implement the
-     * <code>cmd_keyName</code> method, <code>keyName</code> being the first
-     * token of the Vim <code>:nbkey</code> command.
+     * <code>cmd_&lt;keyName&gt;</code> method, <code>keyName</code> being the
+     * first token of the Vim <code>:nbkey</code> command.
      *
      * @param buf      the buffer
      * @param keyName  the first parameter of Vim <code>:nbkey</code> command
