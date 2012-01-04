@@ -62,6 +62,9 @@ class Phonemic(object):
         self.speak_admin_msg('Phonemic is disconnected from Vim.')
 
     def event_fileOpened(self, buf):
+        # Set this buffer as "owned" by Netbeans so as to get buttonRelease
+        # events.
+        self.nbsock.send_cmd(buf, u'netbeansBuffer', u'T')
         self.speak_admin_msg('Opening the file %s.' % buf.get_basename())
 
     def event_killed(self, buf):

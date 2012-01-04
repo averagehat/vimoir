@@ -84,6 +84,8 @@ public class Phonemic implements NetbeansEventHandler {
     }
 
     public void event_fileOpened(NetbeansBuffer buf) {
+        // Set this buffer as "owned" by Netbeans so as to get buttonRelease events.
+        this.nbsock.send_cmd(buf, "netbeansBuffer", "T");
         this.speak_admin_msg("Opening the file " + buf.get_basename());
     }
 

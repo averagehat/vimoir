@@ -127,6 +127,12 @@ def check_bufID(evt_method):
         return evt_method(self, parsed)
     return _decorator
 
+class NetbeansException(Exception):
+    """The base class of all Netbeans exceptions."""
+
+class NetbeansInvalidPathnameException(NetbeansException):
+    """This exception is raised when a buffer pathname is invalid."""
+
 class RawConfigParser(ConfigParser.RawConfigParser):
     """A RawConfigParser subclass with a getter and no section parameter."""
     def get(self, option):
@@ -318,7 +324,7 @@ class Netbeans(asynchat.async_chat):
         self.queue = Queue.Queue(0)
         self.outbuf = ''
         self.reply_fifo = asynchat.fifo()
-        self._bset = BufferSet(self)
+        self._bset = BufferSet()
         self.seqno = 0
         self.last_seqno = 0
         self.encoding = opts.get('vimoir.netbeans.encoding')
@@ -486,7 +492,7 @@ class Netbeans(asynchat.async_chat):
             assert (buf.buf_id == parsed.buf_id or parsed.buf_id == 0,
                                         'got fileOpened with wrong bufId')
             if parsed.buf_id == 0:
-                buf.register(editFile=False)
+                self.send_cmd(buf, u'putBufferNumber', self.quote(pathname))
             try:
                 self.client.event_fileOpened(buf)
             except Exception, e:
@@ -549,7 +555,6 @@ class Netbeans(asynchat.async_chat):
     def evt_killed(self, parsed):
         """A file was deleted or wiped out by the user."""
         buf = self._bset.getbuf_at(parsed.buf_id)
-        buf.registered = False
         try:
             self.client.event_killed(buf)
         except Exception, e:
@@ -719,11 +724,11 @@ class Parser(object):
 class NetbeansBuffer(object):
     """A Vim buffer.
 
+    A NetbeansBuffer is never directly instantiated by the application.
+
     Instance attributes:
         pathname: readonly property
             full pathname
-        registered: boolean
-            True: buffer registered to Vim with netbeans
         offset: int
             cursor position in the buffer as a byte offset
         lnum: int
@@ -732,31 +737,19 @@ class NetbeansBuffer(object):
             column number of the cursor (in bytes, zero based)
         buf_id: int
             netbeans buffer number, starting at one
-        nbsock: netbeans.Netbeans
-            the netbeans asynchat socket
 
     """
 
-    def __init__(self, pathname, buf_id, nbsock):
+    def __init__(self, pathname, buf_id):
         """Constructor."""
+        if not os.path.isabs(pathname):
+            raise NetbeansInvalidPathnameException(
+                '"pathname" is not an absolute path: %s' % pathname)
         self.__pathname = pathname
-        self.registered = False
         self.offset = 0
         self.lnum = 1
         self.col = 0
         self.buf_id = buf_id
-        self.nbsock = nbsock
-
-    def register(self, editFile=True):
-        """Register the buffer with Netbeans."""
-        if not self.registered:
-            if editFile:
-                self.nbsock.send_cmd(self, u'editFile',
-                            self.nbsock.quote(self.pathname))
-            self.nbsock.send_cmd(self, u'putBufferNumber',
-                            self.nbsock.quote(self.pathname))
-            self.nbsock.send_cmd(self, u'netbeansBuffer', u'T')
-            self.registered = True
 
     def get_pathname(self):
         """NetbeansBuffer full path name."""
@@ -777,8 +770,6 @@ class BufferSet(object):
     """A container for a list and map of buffers.
 
     Instance attributes:
-        nbsock: netbeans.Netbeans
-            the netbeans asynchat socket
         buf_map: dict
             a dictionary of {pathname: NetbeansBuffer instance}.
         buf_list: list
@@ -788,9 +779,8 @@ class BufferSet(object):
 
     """
 
-    def __init__(self, nbsock):
+    def __init__(self):
         """Constructor."""
-        self.nbsock = nbsock
         self.buf_map = {}
         self.buf_list = []
         self.lock = threading.Lock()
@@ -811,15 +801,11 @@ class BufferSet(object):
         The pathname parameter must be an absolute path name.
 
         """
-        if not os.path.isabs(pathname):
-            raise ValueError(
-                '"pathname" is not an absolute path: %s' % pathname)
-
         self.lock.acquire()
         try:
             if pathname not in self.buf_map:
                 # Netbeans buffer numbers start at one.
-                buf = NetbeansBuffer(pathname, len(self.buf_list) + 1, self.nbsock)
+                buf = NetbeansBuffer(pathname, len(self.buf_list) + 1)
                 self.buf_map[pathname] = buf
                 self.buf_list.append(buf)
             return self.buf_map[pathname]

@@ -17,7 +17,6 @@
 package vimoir.netbeans;
 
 import java.net.URL;
-import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -61,7 +60,7 @@ class Netbeans extends Connection implements NetbeansSocket {
         super();
         this.server = server;
         this.props = props;
-        this.bset = new BufferSet(this);
+        this.bset = new BufferSet();
         this.setTerminator("\n");
 
         // Set the encoding.
@@ -247,7 +246,7 @@ class Netbeans extends Connection implements NetbeansSocket {
             assert (buf.buf_id == parsed.buf_id
                     || parsed.buf_id == 0) : "got fileOpened with wrong bufId";
             if (parsed.buf_id == 0)
-                buf.register(false);
+                this.send_cmd(buf, "putBufferNumber", this.quote(pathname));
             try {
                 this.client.event_fileOpened(buf);
             } catch (Throwable e) {
@@ -344,7 +343,6 @@ class Netbeans extends Connection implements NetbeansSocket {
     void evt_killed(Parser parsed) {
         NetbeansBuffer buf = this.bset.getbuf_at(parsed.buf_id);
         assert buf != null : "invalid bufId: " + parsed.buf_id + " in killed";
-        buf.registered = false;
         try {
             this.client.event_killed(buf);
         } catch (Throwable e) {
@@ -633,13 +631,8 @@ class Netbeans extends Connection implements NetbeansSocket {
      * <p> A NetbeansBuffer instance is never removed from BufferSet.
      */
     class BufferSet {
-        Netbeans nbsock;
         ArrayList buf_list = new ArrayList();
         HashMap dict = new HashMap();
-
-        BufferSet(Netbeans nbsock) {
-            this.nbsock = nbsock;
-        }
 
         /** Return the buffer at index buf_id in the list. */
         synchronized NetbeansBuffer getbuf_at(int buf_id) {
@@ -651,17 +644,9 @@ class Netbeans extends Connection implements NetbeansSocket {
         /** Get the buffer with pathname as key, instantiate one when not found. */
         synchronized NetbeansBuffer get(String pathname)
                                         throws NetbeansInvalidPathnameException {
-            File f = new File(pathname);
-            String path = f.getPath();
-            String fullpath = f.getAbsolutePath();
-            if (! fullpath.equals(path))
-                throw new NetbeansInvalidPathnameException(
-                                    "'" + path + "' is not an absolute"
-                                    + " path, do you mean '" + fullpath + "' ?");
-
             if (! this.dict.containsKey(pathname)) {
                 NetbeansBuffer buf = new NetbeansBuffer(pathname,
-                                this.buf_list.size() + 1, this.nbsock);
+                                this.buf_list.size() + 1);
                 this.buf_list.add(buf);
                 this.dict.put(pathname, buf);
             }

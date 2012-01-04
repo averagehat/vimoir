@@ -19,7 +19,12 @@ package vimoir.netbeans;
 /** Interface implemented by the Netbeans socket. */
 public interface NetbeansSocket {
 
-    /** Terminate the server. */
+    /**
+     * Terminate the server.
+     *
+     * <p> Stop accepting incoming connections. This does not close the current
+     * socket connections.
+     */
     public void terminate_server();
 
     /** Close the socket. */
@@ -27,6 +32,12 @@ public interface NetbeansSocket {
 
     /**
      * Return the buffer instance associated with this pathname.
+     *
+     *
+     * <p> The NetbeansSocket object maintains a map (dictionary, HashMap) of
+     * {pathname: buffer}. When <code>pathname</code> is not in the map, the
+     * NetbeansSocket object instantiates a new NetbeansBuffer object and adds
+     * this new entry to the map.
      *
      * @param pathname the full pathname of this buffer
      */
