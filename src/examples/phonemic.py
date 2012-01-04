@@ -62,6 +62,13 @@ class Phonemic(object):
         self.speak_admin_msg('Phonemic is disconnected from Vim.')
 
     def event_fileOpened(self, buf):
+        if not buf:
+            self.speak_admin_msg(
+                    'You cannot use netbeans on a "[No Name]" file.\n'
+                    'Please, edit a file.'
+                    )
+            return
+
         # Set this buffer as "owned" by Netbeans so as to get buttonRelease
         # events.
         self.nbsock.send_cmd(buf, u'netbeansBuffer', u'T')
@@ -100,15 +107,12 @@ class Phonemic(object):
     def event_tick(self):
         pass
 
-    def event_error(self, msg):
-        self.speak_admin_msg(msg)
-
     #-----------------------------------------------------------------------
     #   Commands
     #-----------------------------------------------------------------------
 
     def default_cmd_processing(self, buf, cmd, args):
-        """Handle nbkey commands not matched with a 'cmd_xxx' method."""
+        """Handle nbkey commands not matched with a 'cmd_<keyName>' method."""
         info('nbkey: %s', (cmd, args, buf))
 
     def cmd_speak(self, buf, args):

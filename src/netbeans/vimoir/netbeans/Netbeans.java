@@ -159,13 +159,13 @@ class Netbeans extends Connection implements NetbeansSocket {
             String expected = this.props.getProperty("vimoir.netbeans.password", "changeme");
             if (! expected.equals(password)) {
                 try {
-                    this.client.event_error("invalid password: " + password);
-                } catch (Throwable e) {
+                    throw new NetbeansException("invalid password: " + password);
+                } catch (NetbeansException e) {
                     this.handle_error(e);
                 }
-                this.close();
             }
             return;
+
         // '0:version=0 "2.3"'
         // '0:startupDone=0'
         } else {
@@ -234,8 +234,8 @@ class Netbeans extends Connection implements NetbeansSocket {
     /** A file was opened by the user. */
     void evt_fileOpened(Parser parsed) {
         String pathname = parsed.nbstring;
+        NetbeansBuffer buf = null;
         if (! pathname.equals("")) {
-            NetbeansBuffer buf = null;
             try {
                 buf = this.bset.get(pathname);
             } catch (NetbeansInvalidPathnameException e) {
@@ -247,20 +247,12 @@ class Netbeans extends Connection implements NetbeansSocket {
                     || parsed.buf_id == 0) : "got fileOpened with wrong bufId";
             if (parsed.buf_id == 0)
                 this.send_cmd(buf, "putBufferNumber", this.quote(pathname));
-            try {
-                this.client.event_fileOpened(buf);
-            } catch (Throwable e) {
-                this.handle_error(e);
-            }
         }
-        else
-            try {
-                this.client.event_error(
-                    "You cannot use netbeans on a '[No Name]' file.\n"
-                    + "Please, edit a file.");
-            } catch (Throwable e) {
-                this.handle_error(e);
-            }
+        try {
+            this.client.event_fileOpened(buf);
+        } catch (Throwable e) {
+            this.handle_error(e);
+        }
     }
 
     /** Text 'text' has been inserted in Vim at byte position 'offset'. */

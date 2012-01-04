@@ -84,6 +84,12 @@ public class Phonemic implements NetbeansEventHandler {
     }
 
     public void event_fileOpened(NetbeansBuffer buf) {
+        if (buf == null) {
+            this.speak_admin_msg(
+                "You cannot use netbeans on a '[No Name]' file.\n"
+                + "Please, edit a file.");
+            return;
+        }
         // Set this buffer as "owned" by Netbeans so as to get buttonRelease events.
         this.nbsock.send_cmd(buf, "netbeansBuffer", "T");
         this.speak_admin_msg("Opening the file " + buf.get_basename());
@@ -126,10 +132,6 @@ public class Phonemic implements NetbeansEventHandler {
 
     public void event_save(NetbeansBuffer buf) {
         this.speak_admin_msg("Buffer " + buf.get_basename() + " has been saved.");
-    }
-
-    public void event_error(String msg) {
-        this.speak_admin_msg(msg);
     }
 
     public void event_tick() {}

@@ -15,11 +15,14 @@ connections.
 <p> To develop a client, one must implement a class:
 
 <ul>
-<li>the class constructor signature has a single argument which is an instance
-of the {@link vimoir.netbeans.NetbeansSocket} interface
+<li>The class constructor signature has a single argument which is an instance
+of the {@link vimoir.netbeans.NetbeansSocket} interface.
 
-<li>the class implements the NetbeansEventHandler interface where are defined
-the methods used to process Netbeans events
+<li>The class implements the NetbeansEventHandler interface where are defined
+the methods used to process Netbeans events and the class may also optionally
+implement <code>cmd_&lt;keyName&gt;()</code> methods (see below). On the
+occurence of an exception not captured by the client, the library logs the
+exception and its backtrace and closes the socket.
 </ul>
 
 <p>The NetbeansSocket object provides the methods to send Netbeans commands and

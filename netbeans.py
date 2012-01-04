@@ -237,9 +237,6 @@ class NetbeansClient(object):
     def event_tick(self):
         pass
 
-    def event_error(self, msg):
-        pass
-
     #-----------------------------------------------------------------------
     #   Commands
     #-----------------------------------------------------------------------
@@ -408,12 +405,11 @@ class Netbeans(asynchat.async_chat):
             password = matchobj.group(u'passwd')
             if password != self.opts.get('vimoir.netbeans.password'):
                 try:
-                    self.client.event_error(u'invalid password: "%s"'
-                                                            % password)
-                except Exception, e:
+                    raise NetbeansException('invalid password: "%s"' % password)
+                except NetbeansException, e:
                     self.handle_error()
-                self.close()
             return
+
         # '0:version=0 "2.3"'
         # '0:startupDone=0'
         else:
@@ -486,6 +482,7 @@ class Netbeans(asynchat.async_chat):
     def evt_fileOpened(self, parsed):
         """A file was opened by the user."""
         pathname = parsed.nbstring
+        buf = None
         if pathname:
             assert os.path.isabs(pathname), 'absolute pathname required'
             buf = self._bset.get(pathname)
@@ -493,18 +490,10 @@ class Netbeans(asynchat.async_chat):
                                         'got fileOpened with wrong bufId')
             if parsed.buf_id == 0:
                 self.send_cmd(buf, u'putBufferNumber', self.quote(pathname))
-            try:
-                self.client.event_fileOpened(buf)
-            except Exception, e:
-                self.handle_error()
-        else:
-            try:
-                self.client.event_error(
-                        u'You cannot use netbeans on a "[No Name]" file.\n'
-                        u'Please, edit a file.'
-                        )
-            except Exception, e:
-                self.handle_error()
+        try:
+            self.client.event_fileOpened(buf)
+        except Exception, e:
+            self.handle_error()
 
     @check_bufID
     def evt_insert(self, parsed):

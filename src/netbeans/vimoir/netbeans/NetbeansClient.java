@@ -63,8 +63,6 @@ public class NetbeansClient implements NetbeansEventHandler {
 
     public void event_tick() {}
 
-    public void event_error(String message) {}
-
     //-----------------------------------------------------------------------
     //   Commands
     //-----------------------------------------------------------------------

@@ -433,18 +433,12 @@ abstract class Dispatcher {
      */
     static void loop(Selector selector, long user_interval, long timeout) throws IOException {
         assert selector != null :  "null selector";
-        int bugCount = 0;
-        boolean handleJavaFourSelectBug = isJavaFour();
-        if (handleJavaFourSelectBug)
-            logger.info("Handling select bug in java 1.4");
-
         Date lastTime = new Date();
         while (! selector.keys().isEmpty()) {
 
             setSelectionKeys(selector);
-            int eventCount = 0;
             try {
-                eventCount = selector.select(timeout);
+                selector.select(timeout);
             } catch (IOException e) {
                 logger.severe(e.toString());
                 return;
@@ -479,7 +473,6 @@ abstract class Dispatcher {
             Date now = new Date();
             if (now.getTime() - lastTime.getTime() >= user_interval) {
                 // Reset the bug counter on a timer event.
-                bugCount = 0;
                 lastTime = now;
                 it = selector.keys().iterator();
                 while (it.hasNext()) {
@@ -487,19 +480,6 @@ abstract class Dispatcher {
                     if (! key.isValid()) continue;
                     Dispatcher dispatcher = (Dispatcher) key.attachment();
                     dispatcher.handle_tick_event();
-                }
-            }
-
-            /* java 1.4.2_12 does NOT ALWAYS respect the timeout when there are
-             * no events. The following sleep() prevents looping and prevents
-             * using all the cpu, in these cases. */
-            if (handleJavaFourSelectBug && eventCount == 0) {
-                bugCount++;
-                if (bugCount > 5) {
-                    bugCount = 0;
-                    try {
-                        Thread.sleep(timeout);
-                    } catch (java.lang.InterruptedException e) { /* ignore */ }
                 }
             }
         }
@@ -533,18 +513,6 @@ abstract class Dispatcher {
             key.interestOps(ops);
         }
         return count;
-    }
-
-    /* Return true when the JVM is 1.4. */
-    static boolean isJavaFour() {
-        String version = System.getProperty("java.version");
-        String[] array = version.split("[^a-zA-Z0-9]+");
-        int revision = 0;
-        try {
-            if (array.length >= 2)
-                revision = Integer.parseInt(array[1]);
-        } catch(java.lang.NumberFormatException e) { /* ignore */ }
-        return revision == 4;
     }
 }
 
