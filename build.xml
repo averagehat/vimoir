@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <project name="vimoir" default="all">
     <description>Vim speaks with Phonemic</description>
-    <property name="vimoir.version" value="0.2"/>
+    <property name="vimoir.version" value="0.3"/>
     <property name="dist.dir" location="dist"/>
     <property name="netbeans.doc.dir" location="src/netbeans/vimoir/netbeans"/>
     <property name="examples.doc.dir" location="src/examples/vimoir/examples"/>

@@ -28,7 +28,7 @@ import logging
 import ConfigParser
 from logging import error, info, debug
 
-VERSION=0.2 # no spaces
+VERSION=0.3 # no spaces
 SECTION_NAME = 'vimoir properties'
 BUFFER_SIZE = 4096
 DEFAULTS = {
