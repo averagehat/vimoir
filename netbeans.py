@@ -184,6 +184,13 @@ class StderrHandler(logging.StreamHandler):
         self.strbuf.close()
         logging.StreamHandler.close(self)
 
+class NetbeansFunction(object):
+    """An Observable."""
+
+    def __init__(self, seqno, observer):
+        self.seqno = seqno
+        self.observer = observer
+
 class NetbeansClient(object):
     """This class implements all the NetbeansEventHandler methods.
 
@@ -244,28 +251,6 @@ class NetbeansClient(object):
     def default_cmd_processing(self, buf, cmd, args):
         pass
 
-class Reply(object):
-    """Abstract class. A Reply instance is a callable used to process
-    the result of a  function call in the reply received from netbeans.
-
-    Instance attributes:
-        buf: NetbeansBuffer
-            the buffer in use when the function is invoked
-        seqno: int
-            netbeans sequence number
-        nbsock: netbeans.Netbeans
-            the netbeans asynchat socket
-    """
-
-    def __init__(self, buf, seqno, nbsock):
-        self.buf = buf
-        self.seqno = seqno
-        self.nbsock = nbsock
-
-    def __call__(self, seqno, nbstring, arg_list):
-        """Process the netbeans reply."""
-        pass
-
 class Server(asyncore.dispatcher):
     def __init__(self, host, port, props_file):
         asyncore.dispatcher.__init__(self)
@@ -309,6 +294,34 @@ class Server(asyncore.dispatcher):
         pass
 
 class Netbeans(asynchat.async_chat):
+    """A Netbeans instance exchanges netbeans messages on a socket.
+
+    Instance attributes:
+        server: Server
+            the server that accepted the connection
+        addr: str
+            remote address
+        opts: RawConfigParser
+            vimoir properties
+        client: implements NetbeansEventHandler
+            client class
+        ibuff: list
+            list of strings received from netbeans
+        ready: boolean
+            startupDone event has been received
+        output_queue: Queue
+            output netbeans messages
+        observer_fifo: Queue
+            fifo containing observers (notify a function reply)
+        _bset: buffer.BufferSet
+            buffer list
+        seqno: int
+            netbeans sequence number
+        last_seqno: int
+            last reply sequence number
+
+    """
+
     def __init__(self, server, addr, opts):
         asynchat.async_chat.__init__(self)
         self.server = server
@@ -318,9 +331,9 @@ class Netbeans(asynchat.async_chat):
         self.set_terminator(u'\n')
         self.ibuff = []
         self.ready = False
-        self.queue = Queue.Queue(0)
+        self.output_queue = Queue.Queue(0)
         self.outbuf = ''
-        self.reply_fifo = asynchat.fifo()
+        self.observer_fifo = Queue.Queue(0)
         self._bset = BufferSet()
         self.seqno = 0
         self.last_seqno = 0
@@ -389,13 +402,25 @@ class Netbeans(asynchat.async_chat):
             # Vim may send multiple replies for one function request.
             if parsed.seqno == self.last_seqno:
                 return
-
-            if self.reply_fifo.is_empty():
-                raise asyncore.ExitNow(
-                        'got a reply with no matching function request')
-            n, reply = self.reply_fifo.pop()
-            reply(parsed.seqno, parsed.nbstring, parsed.arg_list)
             self.last_seqno = parsed.seqno
+
+            if self.observer_fifo.empty():
+                raise asyncore.ExitNow(
+                    'got a function reply with no matching function request')
+
+            function = self.observer_fifo.get()
+            if function.seqno != parsed.seqno:
+                raise asyncore.ExitNow(
+                    "no match: expected seqno '%s' / seqno in function reply '%s'",
+                        (function.seqno, parsed.seqno))
+            if parsed.nbstring:
+                arg = [parsed.nbstring]
+            else:
+                arg = parsed.arg_list
+            try:
+                function.observer.update(function, arg)
+            except Exception, e:
+                self.handle_error()
 
     def open_session(self, msg):
         """Process initial netbeans messages."""
@@ -432,7 +457,8 @@ class Netbeans(asynchat.async_chat):
         return self._bset.get(pathname)
 
     def writable (self):
-        return (self.connected and (not self.queue.empty() or self.outbuf))
+        return (self.connected
+                and (not self.output_queue.empty() or self.outbuf))
 
     def initiate_send (self):
         self.refill_buffer()
@@ -446,8 +472,8 @@ class Netbeans(asynchat.async_chat):
             self.handle_error()
 
     def refill_buffer (self):
-        while not self.queue.empty() and len(self.outbuf) < BUFFER_SIZE:
-            text = self.queue.get()
+        while not self.output_queue.empty() and len(self.outbuf) < BUFFER_SIZE:
+            text = self.output_queue.get()
             self.outbuf += text
 
     def log_info(self, message, type='info'):
@@ -595,16 +621,28 @@ class Netbeans(asynchat.async_chat):
         """Send a command to Vim."""
         self.send_request(u'%d:%s!%d%s%s\n', buf, cmd, args)
 
-    def send_function(self, buf, function, args=u''):
-        """Send a function call to Vim."""
-        try:
-            clss = eval('%sReply' % function)
-        except NameError:
-            assert False, 'internal error, no reply class for %s' % function
-        assert issubclass(clss, Reply)
-        reply = clss(buf, self.seqno + 1, self)
-        self.reply_fifo.push(reply)
-        self.send_request(u'%d:%s/%d%s%s\n', buf, function, args)
+    def send_function(self, buf, function, *args):
+        """Send a function to Vim.
+
+        Invoked as:
+            send_function(buf, function, observer)
+            send_function(buf, function, params, observer)
+        """
+        params = u''
+        l = len(args)
+        if l == 0 or l > 2:
+            raise NetbeansException(
+                        'invalid number of arguments in send_function')
+        if l == 1:
+            observer = args[0]
+        else:
+            params = args[0]
+            observer = args[1]
+        if not hasattr(observer, 'update'):
+            raise NetbeansException(
+                        'last argument of send_function is not an Observer')
+        self.send_request(u'%d:%s/%d%s%s\n', buf, function, params)
+        self.observer_fifo.put(NetbeansFunction(self.seqno, observer))
 
     def send_request(self, fmt, buf, request, args):
         """Send a netbeans function or command."""
@@ -618,7 +656,7 @@ class Netbeans(asynchat.async_chat):
         msg = fmt % (buf_id, request, self.seqno, space, args)
 
         if self.ready:
-            self.queue.put(msg.encode(self.encoding))
+            self.output_queue.put(msg.encode(self.encoding))
             debug('%s %s', self.addr, msg.strip(u'\n'))
         else:
             info('error in send_request: Netbeans session not ready')

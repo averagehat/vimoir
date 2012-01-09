@@ -16,6 +16,8 @@
 
 package vimoir.netbeans;
 
+import java.util.Observer;
+
 /** Interface implemented by the Netbeans socket. */
 public interface NetbeansSocket {
 
@@ -75,8 +77,56 @@ public interface NetbeansSocket {
      *
      * @param buf   null when the bufID is zero
      * @param cmd   the command name
+     */
+    public void send_cmd(NetbeansBuffer buf, String cmd);
+
+    /**
+     * Send a netbeans command.
+     *
+     * @param buf   null when the bufID is zero
+     * @param cmd   the command name
      * @param args  the command parameters, use the quote method to quote
      *              a Netbeans <code>string</code> parameter
      */
     public void send_cmd(NetbeansBuffer buf, String cmd, String args);
+
+    /**
+     * Send a netbeans function.
+     *
+     * <p> The <code>observer</code> gets the Netbeans asynchronous
+     * <code>Reply</code> through the <code>arg</code> parameter ot its {@link
+     * java.util.Observer#update} method, which is a (possibly empty) String
+     * array. Note that when the <code>Reply</code> contains a Netbeans
+     * <code>string</code>, such as with the <code>getText</code> Netbeans
+     * function, then the string has been already unquoted by vimoir.
+     *
+     * <p> See an example with the {@link vimoir.examples.Phonemic#cmd_length}
+     * method.
+     *
+     * @param buf      null when the bufID is zero
+     * @param function the function name
+     * @param observer the function Observer
+     */
+    public void send_function(NetbeansBuffer buf, String function, Observer observer);
+
+    /**
+     * Send a netbeans function.
+     *
+     * <p> The <code>observer</code> gets the Netbeans asynchronous
+     * <code>Reply</code> through the <code>arg</code> parameter ot its {@link
+     * java.util.Observer#update} method, which is a (possibly empty) String
+     * array. Note that when the <code>Reply</code> contains a Netbeans
+     * <code>string</code>, such as with the <code>getText</code> Netbeans
+     * function, then the string has been already unquoted by vimoir.
+     *
+     * <p> See an example with the {@link vimoir.examples.Phonemic#cmd_length}
+     * method.
+     *
+     * @param buf      null when the bufID is zero
+     * @param function the function name
+     * @param args     the function parameters, use the quote method to quote
+     *                 a Netbeans <code>string</code> parameter
+     * @param observer the function Observer
+     */
+    public void send_function(NetbeansBuffer buf, String function, String args, Observer observer);
 }

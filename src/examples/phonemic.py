@@ -118,6 +118,16 @@ class Phonemic(object):
     def cmd_speak(self, buf, args):
         self.speak(args)
 
+    def cmd_length(self, buf, args):
+        """Get the length of the buffer."""
+        class LengthObserver(object):
+            def update(self, observable, length):
+                speak('The length of buffer %s is %s'
+                                % (buf.get_basename(), length))
+
+        speak = self.speak
+        self.nbsock.send_function(buf, u'getLength', LengthObserver())
+
     def cmd_quit(self, buf, args):
         """Terminate the server."""
         self.nbsock.terminate_server()

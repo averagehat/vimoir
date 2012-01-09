@@ -38,7 +38,7 @@ abstract class Asynchat extends Dispatcher {
     static Charset charset = Charset.forName("US-ASCII");
     static CharsetEncoder encoder = charset.newEncoder();
     static CharsetDecoder decoder = charset.newDecoder();
-    ConcurrentLinkedQueue queue = new ConcurrentLinkedQueue();
+    ConcurrentLinkedQueue output_queue = new ConcurrentLinkedQueue();
     String terminator = null;
     ByteBuffer outbuf;
     ByteBuffer inbuf;
@@ -87,18 +87,18 @@ abstract class Asynchat extends Dispatcher {
      * This method is invoked when the terminator has been received from the
      * channel.
      */
-    abstract void found_terminator();
+    abstract void found_terminator() throws NetbeansException;
 
     boolean readyToWrite() {
         return (this.state.writable()
-                && (this.queue.size() != 0 || this.outbuf.remaining() != 0));
+                && (this.output_queue.size() != 0 || this.outbuf.remaining() != 0));
     }
 
     void initiate_send() throws IOException {
         String str = null;
-        while ((str = (String) this.queue.peek()) != null
+        while ((str = (String) this.output_queue.peek()) != null
                 && this.refill_buffer(str))
-            queue.poll();
+            output_queue.poll();
         super.send(this.outbuf);
     }
 
@@ -115,7 +115,7 @@ abstract class Asynchat extends Dispatcher {
         try {
             this.outbuf.put(this.encoder.encode(CharBuffer.wrap(str)));
         } catch (CharacterCodingException e) {
-            logger.severe(e.toString());
+            handle_error(e);
             System.exit(1);
         }
         this.outbuf.limit(this.outbuf.position()).reset();
@@ -123,7 +123,7 @@ abstract class Asynchat extends Dispatcher {
     }
 
     void send(String str) {
-        this.queue.add(str);
+        this.output_queue.add(str);
     }
 
     String recv() {
@@ -144,8 +144,7 @@ abstract class Asynchat extends Dispatcher {
         try {
             this.initiate_send();
         } catch (IOException e) {
-            logger.severe(e.toString());
-            this.close();
+            handle_error(e);
         }
     }
     void handle_read() {
@@ -169,7 +168,12 @@ abstract class Asynchat extends Dispatcher {
                 if (index > 0)
                     this.collect_incoming_data(str.substring(pos, index));
                 pos = index + this.termlen;
-                this.found_terminator();
+                try {
+                    this.found_terminator();
+                } catch (NetbeansException e) {
+                    handle_error(e);
+                    System.exit(1);
+                }
             }
         }
     }

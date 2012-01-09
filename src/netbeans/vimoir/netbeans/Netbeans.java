@@ -24,10 +24,13 @@ import java.util.Properties;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Observer;
+import java.util.Observable;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.text.MessageFormat;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.lang.reflect.InvocationTargetException;
 
 class Netbeans extends Connection implements NetbeansSocket {
@@ -42,6 +45,7 @@ class Netbeans extends Connection implements NetbeansSocket {
     Properties props;
     NetbeansEventHandler client = null;
     BufferSet bset;
+    ConcurrentLinkedQueue observer_fifo = new ConcurrentLinkedQueue();
     boolean ready = false;
     int seqno = 0;
     int last_seqno = 0;
@@ -97,29 +101,18 @@ class Netbeans extends Connection implements NetbeansSocket {
     }
 
     /** Process new line terminated netbeans message. */
-    void found_terminator() {
+    void found_terminator() throws NetbeansException {
         String msg = this.getBuff();
         logger.finest(this.toString() + " " + msg);
 
         if (! this.connected())
             return;
         if (! this.ready) {
-            try {
-                this.open_session(msg);
-            } catch (NetbeansException e) {
-                System.out.println(e);
-                System.exit(1);
-            }
+            this.open_session(msg);
             return;
         }
 
-        Parser parsed = null;
-        try {
-            parsed = new Parser(msg);
-        } catch (NetbeansException e) {
-            System.out.println(e);
-            System.exit(1);
-        }
+        Parser parsed = new Parser(msg);
         if (parsed.is_event) {
             Class[] parameterTypes = { parsed.getClass() };
             Object[] args = { parsed };
@@ -144,9 +137,34 @@ class Netbeans extends Connection implements NetbeansSocket {
                 cause.printStackTrace();
                 System.exit(1);
             }
+        // A function reply: process the reply.
         } else {
-            // A function reply: process the reply.
-            // FIXME
+            // Vim may send multiple replies for one function request.
+            if (parsed.seqno == this.last_seqno)
+                return;
+            this.last_seqno = parsed.seqno;
+
+            if (this.observer_fifo.isEmpty())
+                throw new NetbeansException("got a function reply"
+                        + " with no matching function request");
+
+            NetbeansFunction function = (NetbeansFunction) this.observer_fifo.poll();
+            if (function.seqno != parsed.seqno)
+                throw new NetbeansException("no match: expected seqno '"
+                        + function.seqno + "' / seqno in function reply '"
+                        + parsed.seqno + "'");
+            String[] arg = {};
+            if (parsed.nbstring.equals(""))
+                arg = parsed.arg_list;
+            else {
+                String[] tmp = { parsed.nbstring };
+                arg = tmp;
+            }
+            try {
+                function.notifyObservers(arg);
+            } catch (Throwable e) {
+                this.handle_error(e);
+            }
         }
     }
 
@@ -393,7 +411,7 @@ class Netbeans extends Connection implements NetbeansSocket {
     //-----------------------------------------------------------------------
 
     /** Send a command to Vim. */
-    void send_cmd(NetbeansBuffer buf, String cmd) {
+    public void send_cmd(NetbeansBuffer buf, String cmd) {
         this.send_cmd(buf, cmd, "");
     }
 
@@ -402,13 +420,15 @@ class Netbeans extends Connection implements NetbeansSocket {
     }
 
     /** Send a function call to Vim. */
-    void send_function(NetbeansBuffer buf, String function) {
-        this.send_function(buf, function, "");
+    public void send_function(NetbeansBuffer buf, String function, Observer observer) {
+        this.send_function(buf, function, "", observer);
     }
 
-    void send_function(NetbeansBuffer buf, String function, String args) {
-        // FIXME
+    public void send_function(NetbeansBuffer buf, String function, String args, Observer observer) {
         this.send_request("{0}:{1}/{2}{3}{4}", buf, function, args);
+        NetbeansFunction func = new NetbeansFunction(this.seqno);
+        func.addObserver(observer);
+        this.observer_fifo.add(func);
     }
 
     /** Send a netbeans function or command. */
@@ -643,6 +663,18 @@ class Netbeans extends Connection implements NetbeansSocket {
                 this.dict.put(pathname, buf);
             }
             return (NetbeansBuffer) this.dict.get(pathname);
+        }
+    }
+
+    /** A Netbeans function reply Observable. */
+    class NetbeansFunction extends Observable {
+        int seqno;
+
+        NetbeansFunction(int seqno) { this.seqno = seqno; }
+
+        public void notifyObservers(Object arg) {
+            this.setChanged();
+            super.notifyObservers(arg);
         }
     }
 }

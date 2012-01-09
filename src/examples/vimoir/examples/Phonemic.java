@@ -16,6 +16,8 @@
 
 package vimoir.examples;
 
+import java.util.Observer;
+import java.util.Observable;
 import java.util.logging.Logger;
 import vimoir.netbeans.NetbeansSocket;
 import vimoir.netbeans.NetbeansEventHandler;
@@ -158,6 +160,24 @@ public class Phonemic implements NetbeansEventHandler {
      */
     public void cmd_speak(NetbeansBuffer buf, String args) {
         this.speak(args);
+    }
+
+    /**
+     * Get the length of the buffer.
+     *
+     * <p> This example use an anonymous class to create an Observer object
+     * that will speak the Netbeans <code>Reply</code> when it is received.
+     */
+    public void cmd_length(final NetbeansBuffer buf, String args) {
+        final Phonemic client = this;
+        this.nbsock.send_function(buf, "getLength",
+            new Observer() {
+                public void update(Observable o, Object arg) {
+                    String[] params = (String[]) arg;
+                    client.speak("The length of buffer " + buf.get_basename()
+                                                        + " is " + params[0]);
+                }
+            });
     }
 
     /** Terminate the server. */
